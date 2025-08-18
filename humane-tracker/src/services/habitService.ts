@@ -12,7 +12,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { Habit, HabitEntry, HabitWithStatus, HabitStatus } from '../types/habit';
-import { startOfWeek, endOfWeek, isToday, differenceInDays } from 'date-fns';
+import { startOfWeek, endOfWeek, isToday, differenceInDays, format } from 'date-fns';
 
 export class HabitService {
   private habitsCollection = collection(db, 'habits');
@@ -119,7 +119,14 @@ export class HabitService {
       e.date >= weekStart && e.date <= weekEnd
     );
     
-    const totalValue = weekEntries.reduce((sum, e) => sum + e.value, 0);
+    // Count unique days with entries (not total values)
+    // A day counts if there's any entry with value > 0
+    const daysWithEntries = new Set(
+      weekEntries
+        .filter(e => e.value > 0)
+        .map(e => format(e.date, 'yyyy-MM-dd'))
+    ).size;
+    
     const todayEntry = weekEntries.find(e => isToday(e.date));
     
     // Check if done today
@@ -127,17 +134,17 @@ export class HabitService {
       return 'done';
     }
     
-    // Check if weekly target is met
-    if (totalValue >= habit.targetPerWeek) {
+    // Check if weekly target is met (counting days, not total values)
+    if (daysWithEntries >= habit.targetPerWeek) {
       return 'met';
     }
     
-    // Calculate days left and entries needed
+    // Calculate days left and days still needed
     const daysLeft = differenceInDays(weekEnd, currentDate) + 1;
-    const entriesNeeded = habit.targetPerWeek - totalValue;
+    const daysNeeded = habit.targetPerWeek - daysWithEntries;
     
     // Check if due today
-    if (daysLeft <= entriesNeeded && !todayEntry) {
+    if (daysLeft <= daysNeeded && !todayEntry) {
       if (daysLeft === 0) return 'overdue';
       if (daysLeft === 1) return 'today';
       if (daysLeft === 2) return 'tomorrow';
@@ -163,7 +170,14 @@ export class HabitService {
     for (const habit of habits) {
       const entries = await this.getHabitEntries(habit.id, startDate, endDate);
       const status = this.calculateHabitStatus(habit, entries, currentDate);
-      const currentWeekCount = entries.reduce((sum, e) => sum + e.value, 0);
+      
+      // Count unique days with entries (not total values)
+      // According to PRD: "Weekly goals count DAYS not total sets"
+      const currentWeekCount = new Set(
+        entries
+          .filter(e => e.value > 0)
+          .map(e => format(e.date, 'yyyy-MM-dd'))
+      ).size;
       
       habitsWithStatus.push({
         ...habit,

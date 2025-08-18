@@ -91,7 +91,14 @@ export const HabitTracker: React.FC<{ userId: string }> = ({ userId }) => {
           );
         }
         
-        const currentWeekCount = entries.reduce((sum, e) => sum + e.value, 0);
+        // Count unique days with entries (not total values)
+        // According to PRD: "Weekly goals count DAYS not total sets"
+        const daysWithEntries = new Set(
+          entries
+            .filter(e => e.value > 0)
+            .map(e => format(e.date, 'yyyy-MM-dd'))
+        ).size;
+        const currentWeekCount = daysWithEntries;
         let status: any = 'pending';
         
         if (currentWeekCount >= habit.targetPerWeek) {
@@ -355,7 +362,13 @@ export const HabitTracker: React.FC<{ userId: string }> = ({ userId }) => {
           } as any);
         }
         
-        const currentWeekCount = newEntries.reduce((sum, e) => sum + e.value, 0);
+        // Count unique days with entries (not total values)
+        const daysWithEntries = new Set(
+          newEntries
+            .filter(e => e.value > 0)
+            .map(e => format(e.date, 'yyyy-MM-dd'))
+        ).size;
+        const currentWeekCount = daysWithEntries;
         let status = h.status;
         if (currentWeekCount >= h.targetPerWeek) {
           status = 'met';
@@ -422,7 +435,13 @@ export const HabitTracker: React.FC<{ userId: string }> = ({ userId }) => {
             
             // Recalculate status
             const newStatus = habitService.calculateHabitStatus(h, updatedEntries);
-            const currentWeekCount = updatedEntries.reduce((sum, e) => sum + e.value, 0);
+            // Count unique days with entries (not total values)
+            const daysWithEntries = new Set(
+              updatedEntries
+                .filter(e => e.value > 0)
+                .map(e => format(e.date, 'yyyy-MM-dd'))
+            ).size;
+            const currentWeekCount = daysWithEntries;
             
             return {
               ...h,
@@ -468,7 +487,13 @@ export const HabitTracker: React.FC<{ userId: string }> = ({ userId }) => {
                 }
                 
                 const newStatus = habitService.calculateHabitStatus(habit, updatedEntries);
-                const currentWeekCount = updatedEntries.reduce((sum, e) => sum + e.value, 0);
+                // Count unique days with entries (not total values)
+                const daysWithEntries = new Set(
+                  updatedEntries
+                    .filter(e => e.value > 0)
+                    .map(e => format(e.date, 'yyyy-MM-dd'))
+                ).size;
+                const currentWeekCount = daysWithEntries;
                 
                 return {
                   ...h,
