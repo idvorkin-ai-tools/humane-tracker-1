@@ -3,6 +3,7 @@ export interface Habit {
   name: string;
   category: HabitCategory;
   targetPerWeek: number;
+  trackingType?: 'binary' | 'sets' | 'hybrid';
   userId: string;
   createdAt: Date;
   updatedAt: Date;

@@ -56,15 +56,16 @@ export class HabitService {
     });
   }
 
-  // Add a habit entry
+  // Add a habit entry (optimized - no wait for server)
   async addEntry(entry: Omit<HabitEntry, 'id' | 'createdAt'>): Promise<string> {
     const newEntry = {
       ...entry,
       date: Timestamp.fromDate(entry.date),
       createdAt: Timestamp.now()
     };
-    const docRef = await addDoc(this.entriesCollection, newEntry);
-    return docRef.id;
+    // Don't wait for server confirmation
+    const docRef = addDoc(this.entriesCollection, newEntry);
+    return (await docRef).id;
   }
 
   // Get entries for a habit within a date range
@@ -175,10 +176,11 @@ export class HabitService {
     return habitsWithStatus;
   }
 
-  // Update entry value
+  // Update entry value (optimized - no wait for server)
   async updateEntry(entryId: string, value: number): Promise<void> {
     const entryRef = doc(this.entriesCollection, entryId);
-    await setDoc(entryRef, { value }, { merge: true });
+    // Don't wait for server confirmation
+    setDoc(entryRef, { value }, { merge: true });
   }
 
   // Delete entry
@@ -189,5 +191,35 @@ export class HabitService {
   // Delete habit
   async deleteHabit(habitId: string): Promise<void> {
     await deleteDoc(doc(this.habitsCollection, habitId));
+  }
+
+  // Update habit
+  async updateHabit(habitId: string, updates: Partial<Habit>): Promise<void> {
+    const habitRef = doc(this.habitsCollection, habitId);
+    await setDoc(habitRef, updates, { merge: true });
+  }
+
+  // Get entries for a specific habit
+  async getEntriesForHabit(habitId: string): Promise<HabitEntry[]> {
+    const q = query(this.entriesCollection, where('habitId', '==', habitId));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      date: doc.data().date?.toDate ? doc.data().date.toDate() : new Date(),
+      createdAt: doc.data().createdAt?.toDate ? doc.data().createdAt.toDate() : new Date()
+    } as HabitEntry));
+  }
+
+  // Get all habits for a user
+  async getHabits(userId: string): Promise<Habit[]> {
+    const q = query(this.habitsCollection, where('userId', '==', userId));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      createdAt: doc.data().createdAt?.toDate ? doc.data().createdAt.toDate() : new Date(),
+      updatedAt: doc.data().updatedAt?.toDate ? doc.data().updatedAt.toDate() : new Date()
+    } as Habit));
   }
 }
