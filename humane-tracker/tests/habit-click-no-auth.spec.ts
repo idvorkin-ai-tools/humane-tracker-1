@@ -31,12 +31,11 @@ test.describe('Habit Tracker Click Functionality (No Auth)', () => {
     const habitName = await firstHabitRow.locator('.habit-name').textContent();
     console.log('Testing with habit:', habitName);
     
-    // Find the cell for today (rightmost day cell before total)
-    // The layout is: Habit | Status | Day1 | Day2 | ... | Day7 | Total
-    // So today is the second-to-last cell
+    // Find the cell for today (leftmost day cell after habit and status)
+    // The layout is: Habit | Status | Today | Yesterday | ... | 6DaysAgo | Total
+    // So today is the 3rd cell (index 2)
     const cells = firstHabitRow.locator('td');
-    const cellCount = await cells.count();
-    const todayCell = cells.nth(cellCount - 2); // Second to last (last is total)
+    const todayCell = cells.nth(2); // Third cell (after Habit and Status)
     
     // Get initial content
     const initialContent = await todayCell.textContent();
@@ -122,9 +121,12 @@ test.describe('Habit Tracker Click Functionality (No Auth)', () => {
     const firstHabitRow = page.locator('tr.section-row').first();
     await expect(firstHabitRow).toBeVisible();
     
-    // Click on the first cell (6 days ago - should trigger confirmation)
+    // Click on an old date cell (3 days ago - should trigger confirmation)
+    // Layout is: Habit | Status | Today | Yesterday | 2DaysAgo | 3DaysAgo | ...
     const cells = firstHabitRow.locator('td');
-    const oldDateCell = cells.nth(2); // First day column (6 days ago)
+    const oldDateCell = cells.nth(5); // 3 days ago (6th cell)
+    
+    console.log('Clicking cell...');
     await oldDateCell.click();
     
     // Wait a bit for dialog

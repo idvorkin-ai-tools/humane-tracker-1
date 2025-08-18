@@ -4,6 +4,7 @@ import { HabitService } from '../services/habitService';
 import { HabitManager } from './HabitManager';
 import { InitializeHabits } from './InitializeHabits';
 import { CleanupDuplicates } from './CleanupDuplicates';
+import { HabitSettings } from './HabitSettings';
 import { DEFAULT_HABITS } from '../data/defaultHabits';
 import { format, addDays, isYesterday, isToday } from 'date-fns';
 import './HabitTracker.css';
@@ -25,7 +26,9 @@ export const HabitTracker: React.FC<{ userId: string }> = ({ userId }) => {
   const [showHabitManager, setShowHabitManager] = useState(false);
   const [showInitializer, setShowInitializer] = useState(false);
   const [showCleanup, setShowCleanup] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [zoomedSection, setZoomedSection] = useState<string | null>(null);
   const collapsedSectionsRef = useRef<Set<string>>(new Set(['balance', 'joy']));
   const useMockMode = !userId || userId === 'mock-user';
   const [summaryStats, setSummaryStats] = useState<SummaryStats>({
@@ -40,10 +43,10 @@ export const HabitTracker: React.FC<{ userId: string }> = ({ userId }) => {
     setHabits([]);
     setSections([]);
     
-    // Set up trailing 7 days (today and previous 6 days)
+    // Set up trailing 7 days with today on the left (newest to oldest)
     const today = new Date();
     const dates = [];
-    for (let i = 6; i >= 0; i--) {
+    for (let i = 0; i <= 6; i++) {
       dates.push(addDays(today, -i));
     }
     setWeekDates(dates);
@@ -154,9 +157,9 @@ export const HabitTracker: React.FC<{ userId: string }> = ({ userId }) => {
     }
 
     // Function to fetch and update habits with their status
-    const updateHabitsWithStatus = async () => {
+    const updateHabitsWithStatus = async (skipLoading = false) => {
       try {
-        setIsLoading(true);
+        if (!skipLoading) setIsLoading(true);
         const habitsWithStatus = await habitService.getHabitsWithStatus(userId);
         
         // Deduplicate habits by name (keeping the one with most entries)
@@ -201,7 +204,7 @@ export const HabitTracker: React.FC<{ userId: string }> = ({ userId }) => {
           onTrack: uniqueHabits.filter(h => h.status === 'met').length
         };
         setSummaryStats(stats);
-        setIsLoading(false);
+        if (!skipLoading) setIsLoading(false);
       } catch (error) {
         console.error('Error fetching habits:', error);
         // Set defaults on error
@@ -218,13 +221,20 @@ export const HabitTracker: React.FC<{ userId: string }> = ({ userId }) => {
           doneToday: 0,
           onTrack: 0
         });
-        setIsLoading(false);
+        if (!skipLoading) setIsLoading(false);
       }
     };
 
+    // Track if we've done initial load
+    let isInitialLoad = true;
+
     // Subscribe to habits changes
-    const unsubscribeHabits = habitService.subscribeToHabits(userId, () => {
-      updateHabitsWithStatus();
+    const unsubscribeHabits = habitService.subscribeToHabits(userId, (updatedHabits) => {
+      // For subsequent updates, only update if not loading
+      if (!isInitialLoad) {
+        // Use the real-time data directly without re-fetching
+        updateHabitsWithStatus(true);
+      }
     });
 
     // Subscribe to entries changes for the trailing 7 days
@@ -234,12 +244,18 @@ export const HabitTracker: React.FC<{ userId: string }> = ({ userId }) => {
     startDate.setDate(startDate.getDate() - 6);
     startDate.setHours(0, 0, 0, 0);
     
-    const unsubscribeEntries = habitService.subscribeToWeekEntries(userId, startDate, endDate, () => {
-      updateHabitsWithStatus();
+    const unsubscribeEntries = habitService.subscribeToWeekEntries(userId, startDate, endDate, (updatedEntries) => {
+      // For subsequent updates, only update if not loading
+      if (!isInitialLoad) {
+        // Use the real-time data directly without re-fetching
+        updateHabitsWithStatus(true);
+      }
     });
 
     // Initial load
-    updateHabitsWithStatus();
+    updateHabitsWithStatus().then(() => {
+      isInitialLoad = false;
+    });
 
     return () => {
       if (!useMockMode) {
@@ -260,6 +276,19 @@ export const HabitTracker: React.FC<{ userId: string }> = ({ userId }) => {
     ));
   };
 
+  const handleZoomIn = (category: string) => {
+    setZoomedSection(category);
+    // Ensure the zoomed section is expanded
+    collapsedSectionsRef.current.delete(category);
+    setSections(prev => prev.map(s => 
+      s.category === category ? { ...s, isCollapsed: false } : s
+    ));
+  };
+
+  const handleZoomOut = () => {
+    setZoomedSection(null);
+  };
+
   const expandAll = () => {
     collapsedSectionsRef.current.clear();
     setSections(prev => prev.map(s => ({ ...s, isCollapsed: false })));
@@ -271,6 +300,8 @@ export const HabitTracker: React.FC<{ userId: string }> = ({ userId }) => {
   };
 
   const handleCellClick = async (habitId: string, date: Date) => {
+    console.log('Handling click for habit:', habitId, 'on date:', format(date, 'yyyy-MM-dd'));
+    
     // Check if date is older than yesterday and confirm
     if (!isToday(date) && !isYesterday(date)) {
       const dateStr = format(date, 'MMM d');
@@ -357,33 +388,128 @@ export const HabitTracker: React.FC<{ userId: string }> = ({ userId }) => {
     }
     
     // Firebase mode - handle cycling through values
-    console.log('Handling click for habit:', habit.name, 'on date:', format(date, 'yyyy-MM-dd'));
-    console.log('Existing entry:', existingEntry);
+    
+    // Optimistic UI update - update local state immediately
+    const optimisticUpdate = () => {
+      setHabits(prevHabits => {
+        return prevHabits.map(h => {
+          if (h.id === habitId) {
+            const updatedEntries = [...h.entries];
+            const entryIndex = updatedEntries.findIndex(e => 
+              format(e.date, 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd')
+            );
+            
+            if (entryIndex >= 0) {
+              const entry = updatedEntries[entryIndex];
+              if (entry.value >= 1 && entry.value < 5) {
+                updatedEntries[entryIndex] = { ...entry, value: entry.value + 1 };
+              } else if (entry.value >= 5) {
+                updatedEntries[entryIndex] = { ...entry, value: 0.5 };
+              } else if (entry.value === 0.5) {
+                updatedEntries.splice(entryIndex, 1);
+              }
+            } else {
+              // Add new entry
+              updatedEntries.push({
+                id: 'temp-' + Date.now(),
+                habitId,
+                userId,
+                date,
+                value: 1,
+                createdAt: new Date()
+              });
+            }
+            
+            // Recalculate status
+            const newStatus = habitService.calculateHabitStatus(h, updatedEntries);
+            const currentWeekCount = updatedEntries.reduce((sum, e) => sum + e.value, 0);
+            
+            return {
+              ...h,
+              entries: updatedEntries,
+              status: newStatus,
+              currentWeekCount
+            };
+          }
+          return h;
+        });
+      });
+      
+      // Also update sections immediately
+      setSections(prevSections => {
+        return prevSections.map(section => {
+          const updatedSectionHabits = section.habits.map(h => {
+            if (h.id === habitId) {
+              const habit = habits.find(habit => habit.id === habitId);
+              if (habit) {
+                const updatedEntries = [...h.entries];
+                const entryIndex = updatedEntries.findIndex(e => 
+                  format(e.date, 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd')
+                );
+                
+                if (entryIndex >= 0) {
+                  const entry = updatedEntries[entryIndex];
+                  if (entry.value >= 1 && entry.value < 5) {
+                    updatedEntries[entryIndex] = { ...entry, value: entry.value + 1 };
+                  } else if (entry.value >= 5) {
+                    updatedEntries[entryIndex] = { ...entry, value: 0.5 };
+                  } else if (entry.value === 0.5) {
+                    updatedEntries.splice(entryIndex, 1);
+                  }
+                } else {
+                  updatedEntries.push({
+                    id: 'temp-' + Date.now(),
+                    habitId,
+                    userId,
+                    date,
+                    value: 1,
+                    createdAt: new Date()
+                  });
+                }
+                
+                const newStatus = habitService.calculateHabitStatus(habit, updatedEntries);
+                const currentWeekCount = updatedEntries.reduce((sum, e) => sum + e.value, 0);
+                
+                return {
+                  ...h,
+                  entries: updatedEntries,
+                  status: newStatus,
+                  currentWeekCount
+                };
+              }
+            }
+            return h;
+          });
+          
+          return {
+            ...section,
+            habits: updatedSectionHabits
+          };
+        });
+      });
+    };
+    
+    // Apply optimistic update immediately
+    optimisticUpdate();
     
     try {
       if (existingEntry) {
         // Cycle through values: 1 -> 2 -> 3 -> 4 -> 5 -> 0.5 -> delete
-        console.log('Updating existing entry with value:', existingEntry.value);
         if (existingEntry.value >= 1 && existingEntry.value < 5) {
-          await habitService.updateEntry(existingEntry.id, existingEntry.value + 1);
-          console.log('Updated to:', existingEntry.value + 1);
+          habitService.updateEntry(existingEntry.id, existingEntry.value + 1);
         } else if (existingEntry.value >= 5) {
-          await habitService.updateEntry(existingEntry.id, 0.5);
-          console.log('Updated to: 0.5');
+          habitService.updateEntry(existingEntry.id, 0.5);
         } else if (existingEntry.value === 0.5) {
-          await habitService.deleteEntry(existingEntry.id);
-          console.log('Deleted entry');
+          habitService.deleteEntry(existingEntry.id);
         }
       } else {
         // Create new entry with value 1
-        console.log('Creating new entry for habit:', habitId);
-        const entryId = await habitService.addEntry({
+        habitService.addEntry({
           habitId,
           userId,
           date,
           value: 1
         });
-        console.log('Created entry with id:', entryId);
       }
     } catch (error) {
       console.error('Error updating entry:', error);
@@ -445,16 +571,38 @@ export const HabitTracker: React.FC<{ userId: string }> = ({ userId }) => {
     <div className="container">
       <div className="week-header">
         <div className="week-title">
-          Last 7 Days • 
-          <span className="current-day">{format(new Date(), 'EEEE, MMM d')}</span>
+          {zoomedSection ? (
+            <>
+              <button className="zoom-back-btn" onClick={handleZoomOut}>
+                ← Back
+              </button>
+              {CATEGORIES[zoomedSection].name} • 
+              <span className="current-day">{format(new Date(), 'EEEE, MMM d')}</span>
+            </>
+          ) : (
+            <>
+              Last 7 Days • 
+              <span className="current-day">{format(new Date(), 'EEEE, MMM d')}</span>
+            </>
+          )}
         </div>
         <div className="view-toggle">
-          <button className="toggle-btn" onClick={expandAll}>Expand All</button>
-          <button className="toggle-btn" onClick={collapseAll}>Collapse All</button>
+          {!zoomedSection && (
+            <>
+              <button className="toggle-btn" onClick={expandAll}>Expand All</button>
+              <button className="toggle-btn" onClick={collapseAll}>Collapse All</button>
+            </>
+          )}
           <button className="toggle-btn active">Dense View</button>
           <button className="toggle-btn add-habit" onClick={() => setShowHabitManager(true)}>
             + Add Habit
           </button>
+          {habits.length > 0 && (
+            <button className="toggle-btn settings" onClick={() => setShowSettings(true)}
+              style={{ background: '#374151' }}>
+              ⚙️ Edit Habits
+            </button>
+          )}
           {habits.length === 0 && (
             <button className="toggle-btn initialize" onClick={() => setShowInitializer(true)}>
               📥 Load Default Habits
@@ -493,8 +641,8 @@ export const HabitTracker: React.FC<{ userId: string }> = ({ userId }) => {
           <tr>
             <th className="col-habit">Habit</th>
             <th className="col-status">●</th>
-            {weekDates.map(date => (
-              <th key={date.toISOString()} className="col-day">
+            {weekDates.map((date, index) => (
+              <th key={date.toISOString()} className={`col-day ${index === 0 ? 'col-today' : ''}`}>
                 {format(date, 'E')[0]}<br/>
                 {format(date, 'd')}
               </th>
@@ -503,18 +651,30 @@ export const HabitTracker: React.FC<{ userId: string }> = ({ userId }) => {
           </tr>
         </thead>
         <tbody>
-          {sections.map(section => (
+          {sections.filter(section => !zoomedSection || section.category === zoomedSection).map(section => (
             <React.Fragment key={section.category}>
-              <tr className="section-header" onClick={() => toggleSection(section.category)}>
+              <tr className="section-header">
                 <td colSpan={10}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div className="section-title">
+                    <div className="section-title" onClick={() => toggleSection(section.category)}>
                       <span className={`section-arrow ${section.isCollapsed ? 'collapsed' : ''}`}>▼</span>
                       <span 
                         className="section-indicator" 
                         style={{ background: section.color }}
                       />
                       {section.name}
+                      {!zoomedSection && (
+                        <button 
+                          className="zoom-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleZoomIn(section.category);
+                          }}
+                          title="Focus on this category"
+                        >
+                          🔍
+                        </button>
+                      )}
                     </div>
                     {section.isCollapsed && (
                       <div className="section-summary">
@@ -547,10 +707,10 @@ export const HabitTracker: React.FC<{ userId: string }> = ({ userId }) => {
                       {getStatusIcon(habit.status)}
                     </span>
                   </td>
-                  {weekDates.map(date => (
+                  {weekDates.map((date, index) => (
                     <td 
                       key={date.toISOString()} 
-                      className={getCellClass(habit, date)}
+                      className={`${getCellClass(habit, date)} ${index === 0 ? 'cell-today' : ''}`}
                       onClick={() => handleCellClick(habit.id, date)}
                       style={{ cursor: 'pointer' }}
                     >
@@ -601,6 +761,18 @@ export const HabitTracker: React.FC<{ userId: string }> = ({ userId }) => {
             // Force refresh after cleanup
             window.location.reload();
           }} 
+        />
+      )}
+
+      {showSettings && (
+        <HabitSettings
+          userId={userId}
+          onClose={() => setShowSettings(false)}
+          onUpdate={() => {
+            setShowSettings(false);
+            // Force refresh after settings change
+            window.location.reload();
+          }}
         />
       )}
     </div>

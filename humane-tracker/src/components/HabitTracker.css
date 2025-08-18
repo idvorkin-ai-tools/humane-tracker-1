@@ -174,6 +174,58 @@ th {
 .status-soon { color: #fbbf24; }
 .status-overdue { color: #ef4444; }
 
+/* Highlight today's column */
+.col-today {
+  background: rgba(96, 165, 250, 0.1);
+  border-left: 2px solid #60a5fa;
+  border-right: 2px solid #60a5fa;
+  font-weight: 600;
+}
+
+.cell-today {
+  background: rgba(96, 165, 250, 0.05);
+  border-left: 1px solid rgba(96, 165, 250, 0.3);
+  border-right: 1px solid rgba(96, 165, 250, 0.3);
+}
+
+.cell-today.completed {
+  background: rgba(34, 197, 94, 0.3);
+}
+
+/* Zoom functionality */
+.zoom-btn {
+  margin-left: 10px;
+  padding: 2px 8px;
+  background: rgba(96, 165, 250, 0.2);
+  border: 1px solid #60a5fa;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.zoom-btn:hover {
+  background: rgba(96, 165, 250, 0.4);
+  transform: scale(1.1);
+}
+
+.zoom-back-btn {
+  padding: 4px 12px;
+  margin-right: 12px;
+  background: #374151;
+  border: 1px solid #4b5563;
+  border-radius: 4px;
+  color: #e5e7eb;
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.2s;
+}
+
+.zoom-back-btn:hover {
+  background: #4b5563;
+  border-color: #6b7280;
+}
+
 .completed {
   background: rgba(34, 197, 94, 0.2);
   color: #22c55e;
