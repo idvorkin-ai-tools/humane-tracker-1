@@ -65,6 +65,96 @@
   overflow-y: auto;
 }
 
+.add-new-section {
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #374151;
+}
+
+.add-new-btn {
+  width: 100%;
+  padding: 12px;
+  background: #10b981;
+  border: 1px solid #10b981;
+  border-radius: 6px;
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.add-new-btn:hover {
+  background: #059669;
+  border-color: #059669;
+}
+
+.add-new-form {
+  background: #242424;
+  border: 1px solid #374151;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.form-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.new-habit-input {
+  flex: 2;
+  min-width: 200px;
+  padding: 8px;
+  background: #1a1a1a;
+  border: 1px solid #374151;
+  border-radius: 4px;
+  color: #f3f4f6;
+  font-size: 14px;
+}
+
+.new-habit-input:focus {
+  outline: none;
+  border-color: #10b981;
+}
+
+.target-field {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-add {
+  padding: 8px 16px;
+  background: #10b981;
+  border: 1px solid #10b981;
+  border-radius: 4px;
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-add:hover {
+  background: #059669;
+}
+
+.btn-cancel-add {
+  padding: 8px 16px;
+  background: #374151;
+  border: 1px solid #4b5563;
+  border-radius: 4px;
+  color: #e5e7eb;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-cancel-add:hover {
+  background: #4b5563;
+}
+
 .habits-list {
   display: flex;
   flex-direction: column;

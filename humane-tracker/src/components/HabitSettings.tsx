@@ -28,6 +28,13 @@ export const HabitSettings: React.FC<HabitSettingsProps> = ({ userId, onClose, o
   const [isLoading, setIsLoading] = useState(true);
   const [changes, setChanges] = useState<Record<number, Partial<Habit>>>({});
   const [deletingHabits, setDeletingHabits] = useState<Set<number>>(new Set());
+  const [showAddNew, setShowAddNew] = useState(false);
+  const [newHabit, setNewHabit] = useState({
+    name: '',
+    category: 'mobility' as any,
+    trackingType: 'hybrid' as any,
+    targetPerWeek: 3
+  });
 
   const habitService = new HabitService();
 
@@ -83,6 +90,36 @@ export const HabitSettings: React.FC<HabitSettingsProps> = ({ userId, onClose, o
     });
   };
 
+  const handleAddNewHabit = async () => {
+    if (!newHabit.name.trim()) {
+      alert('Please enter a habit name');
+      return;
+    }
+
+    try {
+      await habitService.createHabit({
+        name: newHabit.name.trim(),
+        category: newHabit.category,
+        trackingType: newHabit.trackingType,
+        targetPerWeek: newHabit.targetPerWeek,
+        userId
+      });
+      
+      // Reset form and reload habits
+      setNewHabit({
+        name: '',
+        category: 'mobility',
+        trackingType: 'hybrid',
+        targetPerWeek: 3
+      });
+      setShowAddNew(false);
+      await loadHabits();
+    } catch (err) {
+      console.error('Error creating habit:', err);
+      alert('Failed to create habit. Please try again.');
+    }
+  };
+
   const handleSaveAll = async () => {
     try {
       // Save changes
@@ -122,7 +159,7 @@ export const HabitSettings: React.FC<HabitSettingsProps> = ({ userId, onClose, o
       <div className="habit-settings-overlay">
         <div className="habit-settings-modal">
           <div className="modal-header">
-            <h2>⚙️ Edit Habits</h2>
+            <h2>⚙️ Manage Habits</h2>
             <button className="close-btn" onClick={onClose}>✕</button>
           </div>
           <div className="modal-body">
@@ -137,11 +174,99 @@ export const HabitSettings: React.FC<HabitSettingsProps> = ({ userId, onClose, o
     <div className="habit-settings-overlay">
       <div className="habit-settings-modal">
         <div className="modal-header">
-          <h2>⚙️ Edit Habits</h2>
+          <h2>⚙️ Manage Habits</h2>
           <button className="close-btn" onClick={onClose}>✕</button>
         </div>
 
         <div className="modal-body">
+          {/* Add New Habit Section */}
+          <div className="add-new-section">
+            {!showAddNew ? (
+              <button 
+                className="add-new-btn"
+                onClick={() => setShowAddNew(true)}
+              >
+                + Add New Habit
+              </button>
+            ) : (
+              <div className="add-new-form">
+                <div className="form-row">
+                  <input
+                    type="text"
+                    placeholder="Habit name"
+                    value={newHabit.name}
+                    onChange={(e) => setNewHabit({...newHabit, name: e.target.value})}
+                    className="new-habit-input"
+                    autoFocus
+                  />
+                  
+                  <select
+                    value={newHabit.category}
+                    onChange={(e) => setNewHabit({...newHabit, category: e.target.value as any})}
+                    className="category-select"
+                  >
+                    {CATEGORIES.map(cat => (
+                      <option key={cat.value} value={cat.value}>
+                        {cat.label}
+                      </option>
+                    ))}
+                  </select>
+                  
+                  <select
+                    value={newHabit.trackingType}
+                    onChange={(e) => setNewHabit({...newHabit, trackingType: e.target.value as any})}
+                    className="type-select"
+                    title="Tracking Type"
+                  >
+                    {TRACKING_TYPES.map(type => (
+                      <option key={type.value} value={type.value}>
+                        {type.icon} {type.label}
+                      </option>
+                    ))}
+                  </select>
+                  
+                  <div className="target-field">
+                    <input
+                      type="number"
+                      value={newHabit.targetPerWeek}
+                      onChange={(e) => setNewHabit({
+                        ...newHabit, 
+                        targetPerWeek: Math.max(1, Math.min(7, parseInt(e.target.value) || 1))
+                      })}
+                      className="target-input"
+                      min="1"
+                      max="7"
+                      title="Days per week"
+                    />
+                    <span className="target-label">days/wk</span>
+                  </div>
+                  
+                  <button
+                    className="btn-add"
+                    onClick={handleAddNewHabit}
+                  >
+                    Add
+                  </button>
+                  
+                  <button
+                    className="btn-cancel-add"
+                    onClick={() => {
+                      setShowAddNew(false);
+                      setNewHabit({
+                        name: '',
+                        category: 'mobility',
+                        trackingType: 'hybrid',
+                        targetPerWeek: 3
+                      });
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
           <div className="habits-list">
             {habits.map(habit => (
               <div 

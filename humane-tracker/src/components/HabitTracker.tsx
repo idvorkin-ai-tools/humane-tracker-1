@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { HabitWithStatus, CategorySection, SummaryStats } from '../types/habit';
 import { HabitService } from '../services/habitService';
-import { HabitManager } from './HabitManager';
 import { InitializeHabits } from './InitializeHabits';
 import { CleanupDuplicates } from './CleanupDuplicates';
 import { HabitSettings } from './HabitSettings';
@@ -23,7 +22,6 @@ export const HabitTracker: React.FC<{ userId: string }> = ({ userId }) => {
   const [habits, setHabits] = useState<HabitWithStatus[]>([]);
   const [sections, setSections] = useState<CategorySection[]>([]);
   const [weekDates, setWeekDates] = useState<Date[]>([]);
-  const [showHabitManager, setShowHabitManager] = useState(false);
   const [showInitializer, setShowInitializer] = useState(false);
   const [showCleanup, setShowCleanup] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -620,15 +618,10 @@ export const HabitTracker: React.FC<{ userId: string }> = ({ userId }) => {
             </>
           )}
           <button className="toggle-btn active">Dense View</button>
-          <button className="toggle-btn add-habit" onClick={() => setShowHabitManager(true)}>
-            + Add Habit
+          <button className="toggle-btn settings" onClick={() => setShowSettings(true)}
+            style={{ background: '#374151' }}>
+            ⚙️ Manage Habits
           </button>
-          {habits.length > 0 && (
-            <button className="toggle-btn settings" onClick={() => setShowSettings(true)}
-              style={{ background: '#374151' }}>
-              ⚙️ Edit Habits
-            </button>
-          )}
           {habits.length === 0 && (
             <button className="toggle-btn initialize" onClick={() => setShowInitializer(true)}>
               📥 Load Default Habits
@@ -764,13 +757,6 @@ export const HabitTracker: React.FC<{ userId: string }> = ({ userId }) => {
         <div className="legend-item">! = overdue</div>
         <div className="legend-item">½ = partial</div>
       </div>
-
-      {showHabitManager && (
-        <HabitManager 
-          userId={userId} 
-          onClose={() => setShowHabitManager(false)} 
-        />
-      )}
       
       {showInitializer && (
         <InitializeHabits 
