@@ -1,0 +1,203 @@
+import React, { useState, useEffect } from 'react';
+import { Habit } from '../types/habit';
+import { HabitService } from '../services/habitService';
+import './HabitEditor.css';
+
+interface HabitEditorProps {
+  habit: Habit;
+  onClose: () => void;
+  onUpdate: () => void;
+  userId: string;
+}
+
+const CATEGORIES = [
+  { value: 'mobility', label: 'Movement & Mobility', color: '#60a5fa' },
+  { value: 'connection', label: 'Connections', color: '#10b981' },
+  { value: 'balance', label: 'Inner Balance', color: '#a855f7' },
+  { value: 'joy', label: 'Joy & Play', color: '#f472b6' },
+  { value: 'strength', label: 'Strength Building', color: '#34d399' }
+];
+
+const TRACKING_TYPES = [
+  { value: 'binary', label: 'Binary (Yes/No)', description: 'Either done or not done' },
+  { value: 'sets', label: 'Sets (1-5)', description: 'Count multiple completions' },
+  { value: 'hybrid', label: 'Hybrid', description: 'Flexible tracking' }
+];
+
+export const HabitEditor: React.FC<HabitEditorProps> = ({ habit, onClose, onUpdate, userId }) => {
+  const [name, setName] = useState(habit.name);
+  const [category, setCategory] = useState(habit.category);
+  const [targetPerWeek, setTargetPerWeek] = useState(habit.targetPerWeek);
+  const [trackingType, setTrackingType] = useState(habit.trackingType || 'hybrid');
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const habitService = new HabitService();
+
+  const handleSave = async () => {
+    if (!name.trim()) {
+      setError('Habit name is required');
+      return;
+    }
+
+    setIsSaving(true);
+    setError('');
+
+    try {
+      await habitService.updateHabit(habit.id, {
+        name: name.trim(),
+        category,
+        targetPerWeek,
+        trackingType,
+        updatedAt: new Date()
+      });
+      onUpdate();
+      onClose();
+    } catch (err) {
+      console.error('Error updating habit:', err);
+      setError('Failed to update habit. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!isDeleting) {
+      setIsDeleting(true);
+      setTimeout(() => setIsDeleting(false), 3000); // Reset after 3 seconds
+      return;
+    }
+
+    try {
+      // Delete all entries for this habit first
+      const entries = await habitService.getEntriesForHabit(habit.id);
+      for (const entry of entries) {
+        await habitService.deleteEntry(entry.id);
+      }
+      
+      // Then delete the habit
+      await habitService.deleteHabit(habit.id);
+      onUpdate();
+      onClose();
+    } catch (err) {
+      console.error('Error deleting habit:', err);
+      setError('Failed to delete habit. Please try again.');
+      setIsDeleting(false);
+    }
+  };
+
+  return (
+    <div className="habit-editor-overlay">
+      <div className="habit-editor-modal">
+        <div className="modal-header">
+          <h2>Edit Habit</h2>
+          <button className="close-btn" onClick={onClose}>✕</button>
+        </div>
+
+        <div className="modal-body">
+          {error && <div className="error-message">{error}</div>}
+          
+          <div className="form-group">
+            <label htmlFor="habitName">Habit Name</label>
+            <input
+              id="habitName"
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g., Morning Meditation"
+              maxLength={50}
+            />
+            <span className="char-count">{name.length}/50</span>
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="category">Category</label>
+            <select 
+              id="category" 
+              value={category} 
+              onChange={(e) => setCategory(e.target.value as any)}
+            >
+              {CATEGORIES.map(cat => (
+                <option key={cat.value} value={cat.value}>
+                  {cat.label}
+                </option>
+              ))}
+            </select>
+            <div className="category-preview">
+              <span 
+                className="category-dot" 
+                style={{ 
+                  background: CATEGORIES.find(c => c.value === category)?.color 
+                }}
+              />
+              <span>{CATEGORIES.find(c => c.value === category)?.label}</span>
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="trackingType">Tracking Type</label>
+            <div className="tracking-type-options">
+              {TRACKING_TYPES.map(type => (
+                <label key={type.value} className="tracking-type-option">
+                  <input
+                    type="radio"
+                    name="trackingType"
+                    value={type.value}
+                    checked={trackingType === type.value}
+                    onChange={(e) => setTrackingType(e.target.value as any)}
+                  />
+                  <div className="tracking-type-info">
+                    <strong>{type.label}</strong>
+                    <small>{type.description}</small>
+                  </div>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="target">Target Days per Week</label>
+            <input
+              id="target"
+              type="number"
+              value={targetPerWeek}
+              onChange={(e) => setTargetPerWeek(Math.max(1, Math.min(7, parseInt(e.target.value) || 1)))}
+              min="1"
+              max="7"
+            />
+            <small>How many days per week do you want to complete this habit?</small>
+          </div>
+
+          <div className="danger-zone">
+            <h3>Danger Zone</h3>
+            <button 
+              className={`btn-delete ${isDeleting ? 'confirming' : ''}`}
+              onClick={handleDelete}
+            >
+              {isDeleting ? '⚠️ Click again to confirm deletion' : '🗑️ Delete Habit'}
+            </button>
+            {isDeleting && (
+              <small className="delete-warning">
+                This will permanently delete the habit and all its history. This cannot be undone.
+              </small>
+            )}
+          </div>
+        </div>
+
+        <div className="modal-footer">
+          <button className="btn-cancel" onClick={onClose}>
+            Cancel
+          </button>
+          <button 
+            className="btn-save" 
+            onClick={handleSave}
+            disabled={isSaving || !name.trim()}
+          >
+            {isSaving ? 'Saving...' : 'Save Changes'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
