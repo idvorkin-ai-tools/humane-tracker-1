@@ -2,6 +2,9 @@
 
 A habit tracking application with Firebase backend for tracking wellness goals across different categories.
 
+**Live App:** https://humane-tracker.surge.sh
+**GitHub:** https://github.com/idvorkin/humane-tracker-1
+
 ## Features
 
 - Track habits across 5 categories: Movement & Mobility, Connections, Inner Balance, Joy & Play, Strength Building

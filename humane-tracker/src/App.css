@@ -8,14 +8,17 @@
   border-bottom: 1px solid #333;
   padding: 12px 20px;
   margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 1000px;
+  margin: 0 auto 20px;
 }
 
 .user-info {
   display: flex;
   align-items: center;
   gap: 12px;
-  max-width: 1000px;
-  margin: 0 auto;
 }
 
 .user-avatar {
@@ -98,4 +101,24 @@
   background: #1a1a1a;
   color: #ef4444;
   font-size: 16px;
+}
+
+.github-link {
+  padding: 6px 16px;
+  background: #2a2a2a;
+  color: #94a3b8;
+  border: 1px solid #333;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+}
+
+.github-link:hover {
+  background: #333;
+  color: #60a5fa;
+  border-color: #60a5fa;
 }

@@ -72,6 +72,15 @@ function App() {
               Reset
             </button>
           </div>
+          <a
+            href="https://github.com/idvorkin/humane-tracker-1"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="github-link"
+            title="View on GitHub"
+          >
+            GitHub
+          </a>
         </div>
         <HabitTracker userId={localUserId} />
       </div>
@@ -95,6 +104,15 @@ function App() {
             Sign Out
           </button>
         </div>
+        <a
+          href="https://github.com/idvorkin/humane-tracker-1"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="github-link"
+          title="View on GitHub"
+        >
+          GitHub
+        </a>
       </div>
       <HabitTracker userId={currentUser.userId} />
     </div>
