@@ -33,6 +33,7 @@ export const DEFAULT_HABITS: DefaultHabit[] = [
 	{ name: "Magic Practice", category: "joy", targetPerWeek: 3 },
 	{ name: "Magic Trick for Other", category: "joy", targetPerWeek: 1 },
 	{ name: "Daily Selfie", category: "joy", targetPerWeek: 7 },
+	{ name: "Hand Out Balloon", category: "joy", targetPerWeek: 5 },
 
 	// Physical Strength
 	{ name: "TGU 28KG", category: "strength", targetPerWeek: 2 },
