@@ -28,6 +28,10 @@ jobs:
         working-directory: ./humane-tracker
         run: npm ci
 
+      - name: Run unit tests
+        working-directory: ./humane-tracker
+        run: CI=true npm test -- --passWithNoTests
+
       - name: Build React app
         working-directory: ./humane-tracker
         run: npm run build

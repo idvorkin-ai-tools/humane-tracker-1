@@ -1,24 +1,35 @@
-import React from 'react';
-import { render, screen } from '@testing-library/react';
-import App from './App';
+import { render, screen } from "@testing-library/react";
+import React from "react";
+import App from "./App";
 
-// Mock Firebase auth to skip authentication
-jest.mock('./config/firebase', () => ({
-  auth: {},
-  db: {}
+// Mock Dexie database and hooks
+jest.mock("./config/db", () => ({
+	db: {
+		habits: {
+			toArray: jest.fn(() => Promise.resolve([])),
+			where: jest.fn(() => ({
+				equals: jest.fn(() => ({
+					toArray: jest.fn(() => Promise.resolve([])),
+				})),
+			})),
+		},
+		entries: {
+			toArray: jest.fn(() => Promise.resolve([])),
+			where: jest.fn(() => ({
+				equals: jest.fn(() => ({
+					toArray: jest.fn(() => Promise.resolve([])),
+				})),
+			})),
+		},
+	},
 }));
 
-jest.mock('firebase/auth', () => ({
-  onAuthStateChanged: jest.fn((auth, callback) => {
-    // Simulate logged in user
-    callback({ uid: 'mock-user', email: 'test@example.com' });
-    return jest.fn(); // unsubscribe function
-  }),
-  signOut: jest.fn()
+jest.mock("dexie-react-hooks", () => ({
+	useObservable: jest.fn(() => null), // Simulate no user logged in
 }));
 
-test('renders habit tracker', () => {
-  render(<App />);
-  // Just check that something renders
-  expect(document.body).toBeTruthy();
+test("renders habit tracker", () => {
+	render(<App />);
+	// Just check that something renders
+	expect(document.body).toBeTruthy();
 });

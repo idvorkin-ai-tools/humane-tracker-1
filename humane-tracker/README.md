@@ -17,16 +17,19 @@ A habit tracking application with Firebase backend for tracking wellness goals a
 ## Setup
 
 1. **Configure Firebase:**
+
    - Create a new Firebase project at https://console.firebase.google.com
    - Enable Firestore Database
    - Enable Anonymous Authentication
    - Copy your Firebase config
 
 2. **Set up environment variables:**
+
    - Copy `.env.example` to `.env`
    - Fill in your Firebase configuration values
 
 3. **Install dependencies:**
+
    ```bash
    npm install
    ```
@@ -41,6 +44,7 @@ A habit tracking application with Firebase backend for tracking wellness goals a
 The app uses two main collections:
 
 ### `habits` collection
+
 ```javascript
 {
   id: string,
@@ -54,6 +58,7 @@ The app uses two main collections:
 ```
 
 ### `entries` collection
+
 ```javascript
 {
   id: string,

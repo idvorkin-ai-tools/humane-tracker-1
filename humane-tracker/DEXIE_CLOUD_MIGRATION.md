@@ -5,12 +5,14 @@ This document explains the migration from Firebase to Dexie Cloud and how to set
 ## What Changed
 
 ### Removed
+
 - Firebase SDK (`firebase`, `react-firebase-hooks`)
 - Firebase Authentication (Google OAuth)
 - Firebase Firestore database
 - `src/config/firebase.ts`
 
 ### Added
+
 - Dexie.js (`dexie`) - IndexedDB wrapper
 - Dexie Cloud Addon (`dexie-cloud-addon`) - Cloud sync
 - Dexie React Hooks (`dexie-react-hooks`) - React integration
@@ -46,6 +48,7 @@ REACT_APP_DEXIE_CLOUD_URL=https://your-db-name.dexie.cloud
 ### 3. Configure Access Control (Optional)
 
 In the Dexie Cloud dashboard, you can configure:
+
 - **Authentication providers** (email/password, OAuth providers)
 - **Access control rules** for your tables
 - **Permissions** for read/write operations
@@ -57,6 +60,7 @@ By default, Dexie Cloud requires authentication and users can only access their 
 The application uses two main tables:
 
 **habits**
+
 - `id` (auto-generated)
 - `userId` (user identifier)
 - `name` (habit name)
@@ -67,6 +71,7 @@ The application uses two main tables:
 - `updatedAt` (timestamp)
 
 **entries**
+
 - `id` (auto-generated)
 - `habitId` (references habits)
 - `userId` (user identifier)
@@ -83,7 +88,7 @@ If you have existing Firebase data, you can export it and import to Dexie Cloud:
 2. Create a migration script to import data using Dexie's API:
 
 ```typescript
-import { db } from './config/db';
+import { db } from "./config/db";
 
 async function migrateData(firebaseData) {
   // Import habits
@@ -99,37 +104,39 @@ async function migrateData(firebaseData) {
 ### Authentication
 
 **Firebase:**
+
 ```typescript
-import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 const provider = new GoogleAuthProvider();
 await signInWithPopup(auth, provider);
 ```
 
 **Dexie Cloud:**
+
 ```typescript
-import { db } from './config/db';
+import { db } from "./config/db";
 await db.cloud.login(); // Opens built-in login UI
 ```
 
 ### Querying Data
 
 **Firebase:**
+
 ```typescript
-const q = query(collection(db, 'habits'), where('userId', '==', userId));
+const q = query(collection(db, "habits"), where("userId", "==", userId));
 const snapshot = await getDocs(q);
 ```
 
 **Dexie Cloud:**
+
 ```typescript
-const habits = await db.habits
-  .where('userId')
-  .equals(userId)
-  .toArray();
+const habits = await db.habits.where("userId").equals(userId).toArray();
 ```
 
 ### Real-time Subscriptions
 
 **Firebase:**
+
 ```typescript
 onSnapshot(q, (snapshot) => {
   // handle updates
@@ -137,11 +144,12 @@ onSnapshot(q, (snapshot) => {
 ```
 
 **Dexie Cloud:**
+
 ```typescript
 const observable = liveQuery(() =>
-  db.habits.where('userId').equals(userId).toArray()
+  db.habits.where("userId").equals(userId).toArray(),
 );
-observable.subscribe(habits => {
+observable.subscribe((habits) => {
   // handle updates
 });
 ```
@@ -159,6 +167,7 @@ The application will run on `http://localhost:3000` (or configured HOST:PORT).
 ## Production Deployment
 
 1. Build the application:
+
 ```bash
 npm run build
 ```
@@ -169,16 +178,19 @@ npm run build
 ## Troubleshooting
 
 ### Authentication Issues
+
 - Ensure your Dexie Cloud database URL is correct
 - Check that `requireAuth: true` is set in `src/config/db.ts`
 - Verify authentication providers are configured in Dexie Cloud dashboard
 
 ### Sync Issues
+
 - Check browser console for errors
 - Verify internet connection
 - Ensure Dexie Cloud service is running
 
 ### Data Not Appearing
+
 - Data is stored locally first, so check IndexedDB in browser DevTools
 - Verify `userId` is correctly set on all records
 - Check Dexie Cloud dashboard for sync status
@@ -192,5 +204,6 @@ npm run build
 ## Support
 
 For issues with:
+
 - **Dexie Cloud**: Visit [Dexie Cloud Support](https://dexie.org/cloud/docs/support)
 - **This Application**: Check the repository issues or create a new issue
