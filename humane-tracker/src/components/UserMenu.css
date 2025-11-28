@@ -166,6 +166,65 @@
 	color: var(--color-danger);
 }
 
+/* Settings chevron */
+.user-menu-settings-chevron {
+	color: var(--color-warm-gray);
+	transition: transform var(--transition-fast);
+}
+
+.user-menu-settings-chevron.open {
+	transform: rotate(180deg);
+}
+
+/* Settings Panel */
+.user-menu-settings-panel {
+	padding: var(--space-sm) var(--space-md);
+	background: rgba(0, 0, 0, 0.2);
+	border-radius: var(--radius-md);
+	margin: var(--space-xs) var(--space-sm);
+}
+
+.user-menu-settings-row {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: var(--space-sm);
+}
+
+.user-menu-settings-label {
+	color: var(--color-cream);
+	font-size: 0.85rem;
+	font-weight: 500;
+}
+
+.user-menu-settings-value {
+	color: var(--color-warm-gray);
+	font-size: 0.75rem;
+}
+
+.user-menu-settings-button {
+	width: 100%;
+	padding: var(--space-sm);
+	background: var(--color-charcoal);
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	border-radius: var(--radius-md);
+	color: var(--color-cream);
+	font-size: 0.85rem;
+	font-weight: 500;
+	cursor: pointer;
+	transition: all var(--transition-fast);
+}
+
+.user-menu-settings-button:hover:not(:disabled) {
+	background: var(--color-espresso);
+	border-color: var(--color-amber);
+}
+
+.user-menu-settings-button:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+}
+
 /* Mobile adjustments */
 @media (max-width: 640px) {
 	.user-menu-trigger .user-avatar {
