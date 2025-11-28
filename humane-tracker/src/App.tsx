@@ -2,6 +2,7 @@ import { useObservable } from "dexie-react-hooks";
 import React, { useEffect, useState } from "react";
 import { HabitTracker } from "./components/HabitTracker";
 import { Login } from "./components/Login";
+import { UserMenu } from "./components/UserMenu";
 import { db } from "./config/db";
 import "./App.css";
 
@@ -61,26 +62,17 @@ function App() {
 
 		return (
 			<div className="App">
-				<div className="app-header">
-					<div className="user-info">
-						<div className="user-avatar">L</div>
-						<span className="user-name">Local User</span>
-						<span className="local-mode-badge">Local Mode</span>
-						<button className="sign-out-btn" onClick={handleSignOut}>
-							Reset
-						</button>
-					</div>
-					<a
-						href="https://github.com/idvorkin/humane-tracker-1"
-						target="_blank"
-						rel="noopener noreferrer"
-						className="github-link"
-						title="View on GitHub"
-					>
-						GitHub
-					</a>
-				</div>
-				<HabitTracker userId={localUserId} />
+				<HabitTracker
+					userId={localUserId}
+					userMenu={
+						<UserMenu
+							userName="Local User"
+							avatarLetter="L"
+							isLocalMode={true}
+							onSignOut={handleSignOut}
+						/>
+					}
+				/>
 			</div>
 		);
 	}
@@ -90,31 +82,24 @@ function App() {
 		return <Login />;
 	}
 
+	const displayName = currentUser.name || currentUser.email || "User";
+	const avatarLetter = currentUser.name
+		? currentUser.name[0].toUpperCase()
+		: "?";
+
 	return (
 		<div className="App">
-			<div className="app-header">
-				<div className="user-info">
-					<div className="user-avatar">
-						{currentUser.name ? currentUser.name[0].toUpperCase() : "?"}
-					</div>
-					<span className="user-name">
-						{currentUser.name || currentUser.email || "User"}
-					</span>
-					<button className="sign-out-btn" onClick={handleSignOut}>
-						Sign Out
-					</button>
-				</div>
-				<a
-					href="https://github.com/idvorkin/humane-tracker-1"
-					target="_blank"
-					rel="noopener noreferrer"
-					className="github-link"
-					title="View on GitHub"
-				>
-					GitHub
-				</a>
-			</div>
-			<HabitTracker userId={currentUser.userId} />
+			<HabitTracker
+				userId={currentUser.userId}
+				userMenu={
+					<UserMenu
+						userName={displayName}
+						avatarLetter={avatarLetter}
+						isLocalMode={false}
+						onSignOut={handleSignOut}
+					/>
+				}
+			/>
 		</div>
 	);
 }

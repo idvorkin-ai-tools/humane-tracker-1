@@ -22,7 +22,15 @@ const CATEGORIES: { [key: string]: { name: string; color: string } } = {
 	strength: { name: "Strength Building", color: "#34d399" },
 };
 
-export const HabitTracker: React.FC<{ userId: string }> = ({ userId }) => {
+interface HabitTrackerProps {
+	userId: string;
+	userMenu?: React.ReactNode;
+}
+
+export const HabitTracker: React.FC<HabitTrackerProps> = ({
+	userId,
+	userMenu,
+}) => {
 	const [habits, setHabits] = useState<HabitWithStatus[]>([]);
 	const [sections, setSections] = useState<CategorySection[]>([]);
 	const [weekDates, setWeekDates] = useState<Date[]>([]);
@@ -624,6 +632,7 @@ export const HabitTracker: React.FC<{ userId: string }> = ({ userId }) => {
 							🧹 Clean Duplicates
 						</button>
 					)}
+					{userMenu}
 				</div>
 			</div>
 
