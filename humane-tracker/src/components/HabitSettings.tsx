@@ -31,8 +31,8 @@ export const HabitSettings: React.FC<HabitSettingsProps> = ({
 }) => {
 	const [habits, setHabits] = useState<Habit[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
-	const [changes, setChanges] = useState<Record<number, Partial<Habit>>>({});
-	const [deletingHabits, setDeletingHabits] = useState<Set<number>>(new Set());
+	const [changes, setChanges] = useState<Record<string, Partial<Habit>>>({});
+	const [deletingHabits, setDeletingHabits] = useState<Set<string>>(new Set());
 	const [showAddNew, setShowAddNew] = useState(false);
 	const [newHabit, setNewHabit] = useState({
 		name: "",
@@ -66,7 +66,7 @@ export const HabitSettings: React.FC<HabitSettingsProps> = ({
 		}
 	};
 
-	const handleFieldChange = (habitId: number, field: string, value: any) => {
+	const handleFieldChange = (habitId: string, field: string, value: any) => {
 		setChanges((prev) => ({
 			...prev,
 			[habitId]: {
@@ -85,7 +85,7 @@ export const HabitSettings: React.FC<HabitSettingsProps> = ({
 		return habit[field];
 	};
 
-	const handleDeleteToggle = (habitId: number) => {
+	const handleDeleteToggle = (habitId: string) => {
 		setDeletingHabits((prev) => {
 			const newSet = new Set(prev);
 			if (newSet.has(habitId)) {
@@ -130,9 +130,8 @@ export const HabitSettings: React.FC<HabitSettingsProps> = ({
 	const handleSaveAll = async () => {
 		try {
 			// Save changes
-			for (const [habitIdStr, habitChanges] of Object.entries(changes)) {
+			for (const [habitId, habitChanges] of Object.entries(changes)) {
 				if (Object.keys(habitChanges).length > 0) {
-					const habitId = Number(habitIdStr);
 					await habitService.updateHabit(habitId, {
 						...habitChanges,
 						updatedAt: new Date(),

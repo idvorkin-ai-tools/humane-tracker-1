@@ -18,7 +18,7 @@ export class HabitService {
 	// Create a new habit
 	async createHabit(
 		habit: Omit<Habit, "id" | "createdAt" | "updatedAt">,
-	): Promise<number> {
+	): Promise<string> {
 		const newHabit: Omit<Habit, "id"> = {
 			...habit,
 			createdAt: new Date(),
@@ -49,7 +49,7 @@ export class HabitService {
 	}
 
 	// Add a habit entry
-	async addEntry(entry: Omit<HabitEntry, "id" | "createdAt">): Promise<number> {
+	async addEntry(entry: Omit<HabitEntry, "id" | "createdAt">): Promise<string> {
 		const newEntry: Omit<HabitEntry, "id"> = {
 			...entry,
 			createdAt: new Date(),
@@ -60,7 +60,7 @@ export class HabitService {
 
 	// Get entries for a habit within a date range
 	async getHabitEntries(
-		habitId: number,
+		habitId: string,
 		startDate: Date,
 		endDate: Date,
 	): Promise<HabitEntry[]> {
@@ -180,27 +180,27 @@ export class HabitService {
 	}
 
 	// Update entry value
-	async updateEntry(entryId: number, value: number): Promise<void> {
+	async updateEntry(entryId: string, value: number): Promise<void> {
 		await db.entries.update(entryId, { value });
 	}
 
 	// Delete entry
-	async deleteEntry(entryId: number): Promise<void> {
+	async deleteEntry(entryId: string): Promise<void> {
 		await db.entries.delete(entryId);
 	}
 
 	// Delete habit
-	async deleteHabit(habitId: number): Promise<void> {
+	async deleteHabit(habitId: string): Promise<void> {
 		await db.habits.delete(habitId);
 	}
 
 	// Update habit
-	async updateHabit(habitId: number, updates: Partial<Habit>): Promise<void> {
+	async updateHabit(habitId: string, updates: Partial<Habit>): Promise<void> {
 		await db.habits.update(habitId, updates);
 	}
 
 	// Get entries for a specific habit
-	async getEntriesForHabit(habitId: number): Promise<HabitEntry[]> {
+	async getEntriesForHabit(habitId: string): Promise<HabitEntry[]> {
 		return await db.entries.where("habitId").equals(habitId).toArray();
 	}
 
@@ -212,7 +212,7 @@ export class HabitService {
 	// Bulk create habits (faster than individual creates)
 	async bulkCreateHabits(
 		habits: Array<Omit<Habit, "id" | "createdAt" | "updatedAt">>,
-	): Promise<number[]> {
+	): Promise<string[]> {
 		const now = new Date();
 		const habitsToInsert = habits.map((habit) => ({
 			...habit,

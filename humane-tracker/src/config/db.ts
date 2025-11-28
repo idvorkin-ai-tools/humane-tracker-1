@@ -4,17 +4,17 @@ import type { Habit, HabitEntry } from "../types/habit";
 
 // Extend Dexie with cloud addon
 export class HumaneTrackerDB extends Dexie {
-	habits!: Table<Habit, number>;
-	entries!: Table<HabitEntry, number>;
+	habits!: Table<Habit, string>;
+	entries!: Table<HabitEntry, string>;
 
 	constructor() {
 		super("HumaneTrackerDB", { addons: [dexieCloud] });
 
-		// Define schema - using ++id for auto-increment
-		this.version(1).stores({
+		// Define schema - using @id for Dexie Cloud compatible auto-generated string IDs
+		this.version(2).stores({
 			habits:
-				"++id, userId, name, category, targetPerWeek, createdAt, updatedAt",
-			entries: "++id, habitId, userId, date, value, createdAt",
+				"@id, userId, name, category, targetPerWeek, createdAt, updatedAt",
+			entries: "@id, habitId, userId, date, value, createdAt",
 		});
 	}
 }
@@ -24,24 +24,21 @@ export const db = new HumaneTrackerDB();
 
 // Configure Dexie Cloud (optional - works offline if not configured)
 const dexieCloudUrl = import.meta.env.VITE_DEXIE_CLOUD_URL;
+const isTestMode =
+	typeof window !== "undefined" && window.location.search.includes("test=true");
 
-if (dexieCloudUrl && dexieCloudUrl !== "https://your-db.dexie.cloud") {
-	// Only configure cloud sync if URL is properly set
+if (
+	dexieCloudUrl &&
+	dexieCloudUrl !== "https://your-db.dexie.cloud" &&
+	!isTestMode
+) {
+	// Configure cloud sync with the provided URL
 	db.cloud.configure({
 		databaseUrl: dexieCloudUrl,
-		requireAuth: false, // Allow local use without auth for now
+		requireAuth: true, // Require authentication for cloud sync
 		tryUseServiceWorker: true,
-		// Exclude auto-incremented tables from sync (they use numeric IDs)
-		unsyncedTables: ["habits", "entries"],
 	});
 } else {
-	// Disable cloud sync - work in local-only mode
-	// Still need to configure with unsyncedTables to avoid schema conflicts
-	db.cloud.configure({
-		databaseUrl: "https://placeholder.dexie.cloud",
-		requireAuth: false,
-		tryUseServiceWorker: false,
-		unsyncedTables: ["habits", "entries"],
-	});
+	// Local-only mode - no cloud sync (also used in test mode)
 	console.log("Dexie Cloud not configured - running in local-only mode");
 }

@@ -41,6 +41,10 @@ yarn-error.log*
 # Authentication files
 auth.json
 
+# Dexie Cloud credentials
+dexie-cloud.key
+dexie-cloud.json
+
 # TypeScript build info
 *.tsbuildinfo
 

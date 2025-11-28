@@ -14,3 +14,7 @@ Thumbs.db
 *~
 .vscode/
 .idea/
+
+# Dexie Cloud credentials
+dexie-cloud.key
+dexie-cloud.json

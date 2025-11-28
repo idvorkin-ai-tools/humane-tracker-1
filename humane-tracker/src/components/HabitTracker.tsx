@@ -231,7 +231,7 @@ export const HabitTracker: React.FC<{ userId: string }> = ({ userId }) => {
 		setSections((prev) => prev.map((s) => ({ ...s, isCollapsed: true })));
 	};
 
-	const handleCellClick = async (habitId: number, date: Date) => {
+	const handleCellClick = async (habitId: string, date: Date) => {
 		console.log(
 			"Handling click for habit:",
 			habitId,
@@ -289,7 +289,7 @@ export const HabitTracker: React.FC<{ userId: string }> = ({ userId }) => {
 				} else {
 					// Add new entry
 					newEntries.push({
-						id: Date.now(),
+						id: crypto.randomUUID(),
 						habitId,
 						userId,
 						date,
@@ -367,7 +367,7 @@ export const HabitTracker: React.FC<{ userId: string }> = ({ userId }) => {
 						} else {
 							// Add new entry
 							updatedEntries.push({
-								id: Date.now(),
+								id: crypto.randomUUID(),
 								habitId,
 								userId,
 								date,
@@ -427,7 +427,7 @@ export const HabitTracker: React.FC<{ userId: string }> = ({ userId }) => {
 									}
 								} else {
 									updatedEntries.push({
-										id: Date.now(),
+										id: crypto.randomUUID(),
 										habitId,
 										userId,
 										date,

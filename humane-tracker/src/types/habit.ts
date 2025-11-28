@@ -1,5 +1,5 @@
 export interface Habit {
-	id: number;
+	id: string;
 	name: string;
 	category: HabitCategory;
 	targetPerWeek: number;
@@ -10,8 +10,8 @@ export interface Habit {
 }
 
 export interface HabitEntry {
-	id: number;
-	habitId: number;
+	id: string;
+	habitId: string;
 	userId: string;
 	date: Date;
 	value: number; // Can be 1 for done, 0.5 for partial, or actual count
