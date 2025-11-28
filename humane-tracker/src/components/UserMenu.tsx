@@ -1,5 +1,8 @@
+import { useObservable } from "dexie-react-hooks";
 import React, { useEffect, useRef, useState } from "react";
+import { db } from "../config/db";
 import { useVersionCheck } from "../hooks/useVersionCheck";
+import { SyncStatusDialog } from "./SyncStatusDialog";
 import "./UserMenu.css";
 
 interface UserMenuProps {
@@ -12,6 +15,65 @@ interface UserMenuProps {
 	onLoadDefaults?: () => void;
 	showCleanDuplicates?: boolean;
 	showLoadDefaults?: boolean;
+}
+
+type SyncStatePhase =
+	| "initial"
+	| "not-in-sync"
+	| "pushing"
+	| "pulling"
+	| "in-sync"
+	| "error"
+	| "offline";
+
+type WebSocketStatus =
+	| "not-started"
+	| "connecting"
+	| "connected"
+	| "disconnected"
+	| "error";
+
+interface SyncState {
+	status: string;
+	phase: SyncStatePhase;
+	progress?: number;
+	error?: Error;
+	license?: "ok" | "expired" | "deactivated";
+}
+
+function getSyncStatusIndicator(
+	syncState: SyncState | null,
+	wsStatus: WebSocketStatus | null,
+	isLocalMode: boolean,
+): { icon: string; className: string } {
+	if (isLocalMode) {
+		return { icon: "○", className: "sync-indicator-gray" };
+	}
+	if (!syncState) {
+		return { icon: "○", className: "sync-indicator-gray" };
+	}
+
+	const phase = syncState.phase;
+	if (phase === "error" || syncState.status === "error") {
+		return { icon: "●", className: "sync-indicator-red" };
+	}
+	if (phase === "offline" || syncState.status === "offline") {
+		return { icon: "○", className: "sync-indicator-gray" };
+	}
+	if (syncState.status === "connecting" || phase === "initial") {
+		return { icon: "○", className: "sync-indicator-yellow" };
+	}
+	if (phase === "pushing" || phase === "pulling") {
+		return { icon: "◐", className: "sync-indicator-blue" };
+	}
+	if (phase === "in-sync" && wsStatus === "connected") {
+		return { icon: "●", className: "sync-indicator-green" };
+	}
+	if (phase === "in-sync") {
+		return { icon: "●", className: "sync-indicator-green" };
+	}
+
+	return { icon: "○", className: "sync-indicator-gray" };
 }
 
 export function UserMenu({
@@ -27,8 +89,25 @@ export function UserMenu({
 }: UserMenuProps) {
 	const [isOpen, setIsOpen] = useState(false);
 	const [showSettings, setShowSettings] = useState(false);
+	const [showSyncDialog, setShowSyncDialog] = useState(false);
 	const menuRef = useRef<HTMLDivElement>(null);
 	const { checkForUpdate, isChecking, lastCheckTime } = useVersionCheck();
+
+	const syncStateFromCloud = useObservable(() => db.cloud.syncState, []) as
+		| SyncState
+		| undefined;
+	const wsStatusFromCloud = useObservable(() => db.cloud.webSocketStatus, []) as
+		| WebSocketStatus
+		| undefined;
+
+	const syncState = isLocalMode ? null : (syncStateFromCloud ?? null);
+	const wsStatus = isLocalMode ? null : (wsStatusFromCloud ?? null);
+
+	const syncIndicator = getSyncStatusIndicator(
+		syncState,
+		wsStatus,
+		isLocalMode,
+	);
 
 	const formatLastCheck = (date: Date | null): string => {
 		if (!date) return "Never";
@@ -242,6 +321,35 @@ export function UserMenu({
 							>
 								{isChecking ? "Checking..." : "Check for Update"}
 							</button>
+
+							<div className="user-menu-settings-divider" />
+
+							<div className="user-menu-settings-row">
+								<span className="user-menu-settings-label">Sync</span>
+								<span
+									className={`user-menu-settings-value ${syncIndicator.className}`}
+								>
+									<span className="sync-indicator-icon">
+										{syncIndicator.icon}
+									</span>{" "}
+									{isLocalMode
+										? "Local Only"
+										: syncState?.phase === "in-sync"
+											? "Synced"
+											: (syncState?.phase ?? "Unknown")}
+								</span>
+							</div>
+							{!isLocalMode && (
+								<button
+									className="user-menu-settings-button"
+									onClick={() => {
+										setShowSyncDialog(true);
+										setIsOpen(false);
+									}}
+								>
+									View Sync Status
+								</button>
+							)}
 						</div>
 					)}
 
@@ -267,6 +375,10 @@ export function UserMenu({
 						{isLocalMode ? "Reset" : "Sign Out"}
 					</button>
 				</div>
+			)}
+
+			{showSyncDialog && (
+				<SyncStatusDialog onClose={() => setShowSyncDialog(false)} />
 			)}
 		</div>
 	);

@@ -225,6 +225,37 @@
 	cursor: not-allowed;
 }
 
+.user-menu-settings-divider {
+	height: 1px;
+	background: var(--color-charcoal);
+	margin: var(--space-sm) 0;
+}
+
+/* Sync Status Indicators */
+.sync-indicator-icon {
+	font-size: 0.8rem;
+}
+
+.sync-indicator-green {
+	color: var(--color-sage);
+}
+
+.sync-indicator-blue {
+	color: #60a5fa;
+}
+
+.sync-indicator-yellow {
+	color: var(--color-amber);
+}
+
+.sync-indicator-red {
+	color: var(--color-danger);
+}
+
+.sync-indicator-gray {
+	color: var(--color-warm-gray);
+}
+
 /* Mobile adjustments */
 @media (max-width: 640px) {
 	.user-menu-trigger .user-avatar {
