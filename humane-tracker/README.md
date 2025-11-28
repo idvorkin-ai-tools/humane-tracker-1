@@ -81,16 +81,24 @@ The app uses Dexie (IndexedDB) with two tables:
 
 ## Development
 
+Use the justfile for all commands:
+
 ```bash
-# Run development server
-npm run dev
-
-# Build for production
-npm run build
-
-# Run tests
-npm test
-
-# Run E2E tests
-npm run test:e2e
+just dev      # Run development server
+just build    # Build for production
+just test     # Run unit tests
+just e2e      # Run E2E tests (Playwright)
+just deploy   # Run tests, build, and deploy to Surge
 ```
+
+## Deployment
+
+The app is deployed to **Surge** at https://humane-tracker.surge.sh
+
+To deploy:
+
+```bash
+just deploy
+```
+
+This runs tests, builds the app, and deploys to Surge.

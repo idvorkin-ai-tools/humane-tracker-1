@@ -15,12 +15,14 @@ Address your human partner as "Igor" at all times.
 
 ## Build & Development Commands
 
+**Always use the justfile for commands.** Run from `humane-tracker/` directory:
+
 ```bash
-cd humane-tracker
-npm run dev       # Run development server - opens http://localhost:3000
-npm run build     # Build for production (tsc + vite build)
-npm test          # Run unit tests (Vitest)
-npm run test:e2e  # Run E2E tests (Playwright)
+just dev      # Run development server - opens http://localhost:3000
+just build    # Build for production (tsc + vite build)
+just test     # Run unit tests (Vitest)
+just e2e      # Run E2E tests (Playwright - chromium only)
+just deploy   # Run tests, build, and deploy to Surge
 ```
 
 ## Code Quality
