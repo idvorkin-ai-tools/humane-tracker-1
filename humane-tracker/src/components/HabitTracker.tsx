@@ -624,7 +624,7 @@ export const HabitTracker: React.FC<HabitTrackerProps> = ({
 						onCleanDuplicates: () => setShowCleanup(true),
 						onLoadDefaults: () => setShowInitializer(true),
 						showCleanDuplicates: !useMockMode && habits.length > 0,
-						showLoadDefaults: habits.length === 0,
+						showLoadDefaults: !isLoading && habits.length === 0,
 					})}
 				</div>
 			</div>
