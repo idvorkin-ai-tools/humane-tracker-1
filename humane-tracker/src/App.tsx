@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { HabitTracker } from "./components/HabitTracker";
 import { Login } from "./components/Login";
 import { UserMenu } from "./components/UserMenu";
+import { VersionNotification } from "./components/VersionNotification";
 import { db } from "./config/db";
 import "./App.css";
 
@@ -78,6 +79,7 @@ function App() {
 						/>
 					)}
 				/>
+				<VersionNotification />
 			</div>
 		);
 	}
@@ -110,6 +112,7 @@ function App() {
 					/>
 				)}
 			/>
+			<VersionNotification />
 		</div>
 	);
 }
