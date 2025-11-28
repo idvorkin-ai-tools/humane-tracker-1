@@ -189,17 +189,20 @@
 	justify-content: space-between;
 	align-items: center;
 	margin-bottom: var(--space-sm);
+	gap: var(--space-sm);
 }
 
 .user-menu-settings-label {
 	color: var(--color-cream);
 	font-size: 0.85rem;
 	font-weight: 500;
+	flex-shrink: 0;
 }
 
 .user-menu-settings-value {
 	color: var(--color-warm-gray);
 	font-size: 0.75rem;
+	text-align: right;
 }
 
 .user-menu-settings-button {
