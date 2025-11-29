@@ -137,7 +137,7 @@ export function SettingsDialog({
 			const url = URL.createObjectURL(blob);
 			const link = document.createElement("a");
 			link.href = url;
-			link.download = `humane-tracker-backup-${new Date().toISOString().split("T")[0]}.json`;
+			link.download = `humane-tracker-backup-${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
 			document.body.appendChild(link);
 			link.click();
 			document.body.removeChild(link);
