@@ -4,6 +4,8 @@
 # dependencies = [
 #     "textual>=0.89.0",
 #     "rich>=13.9.0",
+#     "typer>=0.9.0",
+#     "questionary>=2.0.0",
 #     "pytest>=8.0.0",
 #     "pytest-asyncio>=0.24.0",
 # ]
@@ -20,6 +22,7 @@ from humane_cli import (
     HelpScreen,
     HumaneCLI,
     HumaneData,
+    find_habits_by_name,
 )
 
 # Test data fixture
@@ -269,6 +272,134 @@ class TestQuit:
             await pilot.press("enter")  # Go to habits
             await pilot.press("q")
             # App should exit
+
+
+# Test data for merge functionality
+MERGE_TEST_DATA = {
+    "version": 1,
+    "habits": [
+        {"id": "tgu", "name": "TGU", "category": "fitness", "targetPerWeek": 3},
+        {"id": "tgu-l", "name": "TGU-L", "category": "fitness", "targetPerWeek": 2},
+        {"id": "tgu-r", "name": "TGU-R", "category": "fitness", "targetPerWeek": 2},
+        {"id": "kb", "name": "Kettlebell", "category": "fitness", "targetPerWeek": 5},
+    ],
+    "entries": [
+        # TGU entries
+        {"id": "e1", "habitId": "tgu", "date": "2025-11-28", "value": 5, "createdAt": "2025-11-28T10:00:00Z"},
+        {"id": "e2", "habitId": "tgu", "date": "2025-11-27", "value": 3, "createdAt": "2025-11-27T10:00:00Z"},
+        # TGU-L entries (overlaps with TGU on 11-28, different value)
+        {"id": "e3", "habitId": "tgu-l", "date": "2025-11-28", "value": 8, "createdAt": "2025-11-28T11:00:00Z"},
+        {"id": "e4", "habitId": "tgu-l", "date": "2025-11-26", "value": 4, "createdAt": "2025-11-26T10:00:00Z"},
+        # TGU-R entries
+        {"id": "e5", "habitId": "tgu-r", "date": "2025-11-28", "value": 6, "createdAt": "2025-11-28T12:00:00Z"},
+        {"id": "e6", "habitId": "tgu-r", "date": "2025-11-25", "value": 7, "createdAt": "2025-11-25T10:00:00Z"},
+        # KB entry (should be unaffected)
+        {"id": "e7", "habitId": "kb", "date": "2025-11-28", "value": 10, "createdAt": "2025-11-28T09:00:00Z"},
+    ],
+}
+
+
+class TestMergeHabits:
+    """Tests for merge_habits functionality."""
+
+    @pytest.fixture
+    def merge_data(self):
+        return HumaneData(data=MERGE_TEST_DATA)
+
+    def test_merge_takes_max_value_on_same_day(self, merge_data):
+        """When multiple habits have entries on the same day, take max value."""
+        result = merge_data.merge_habits("tgu", ["tgu-l", "tgu-r"])
+
+        # Find the merged entry for 2025-11-28
+        merged_entries = [e for e in result["entries"] if e["habitId"] == "tgu"]
+        nov28_entry = next(e for e in merged_entries if e["date"] == "2025-11-28")
+
+        # TGU had 5, TGU-L had 8, TGU-R had 6 -> max is 8
+        assert nov28_entry["value"] == 8
+
+    def test_merge_keeps_unique_dates(self, merge_data):
+        """Entries on unique dates are preserved."""
+        result = merge_data.merge_habits("tgu", ["tgu-l", "tgu-r"])
+
+        merged_entries = [e for e in result["entries"] if e["habitId"] == "tgu"]
+        dates = {e["date"] for e in merged_entries}
+
+        # Should have 11-28 (all three), 11-27 (tgu only), 11-26 (tgu-l), 11-25 (tgu-r)
+        assert dates == {"2025-11-28", "2025-11-27", "2025-11-26", "2025-11-25"}
+
+    def test_merge_removes_source_habits(self, merge_data):
+        """Source habits are removed from the habits list."""
+        result = merge_data.merge_habits("tgu", ["tgu-l", "tgu-r"])
+
+        habit_ids = {h["id"] for h in result["habits"]}
+        assert "tgu" in habit_ids
+        assert "tgu-l" not in habit_ids
+        assert "tgu-r" not in habit_ids
+        assert "kb" in habit_ids  # Unrelated habit should remain
+
+    def test_merge_preserves_unrelated_entries(self, merge_data):
+        """Entries for habits not involved in merge are preserved."""
+        result = merge_data.merge_habits("tgu", ["tgu-l", "tgu-r"])
+
+        kb_entries = [e for e in result["entries"] if e["habitId"] == "kb"]
+        assert len(kb_entries) == 1
+        assert kb_entries[0]["value"] == 10
+
+    def test_merge_with_target_in_sources(self, merge_data):
+        """Including target in sources list is handled gracefully."""
+        result = merge_data.merge_habits("tgu", ["tgu", "tgu-l"])
+
+        # Should still work - tgu-l merged into tgu
+        habit_ids = {h["id"] for h in result["habits"]}
+        assert "tgu" in habit_ids
+        assert "tgu-l" not in habit_ids
+        assert "tgu-r" in habit_ids  # Not merged
+
+    def test_merge_reassigns_entry_habit_ids(self, merge_data):
+        """All merged entries have the target habit ID."""
+        result = merge_data.merge_habits("tgu", ["tgu-l", "tgu-r"])
+
+        # No entries should have tgu-l or tgu-r as habitId
+        for entry in result["entries"]:
+            assert entry["habitId"] != "tgu-l"
+            assert entry["habitId"] != "tgu-r"
+
+
+class TestFindHabitsByName:
+    """Tests for find_habits_by_name helper."""
+
+    @pytest.fixture
+    def merge_data(self):
+        return HumaneData(data=MERGE_TEST_DATA)
+
+    def test_find_exact_match(self, merge_data):
+        """Can find habit by exact name."""
+        results = find_habits_by_name(merge_data, "TGU")
+        names = [h["name"] for h in results]
+        # Should match TGU, TGU-L, TGU-R (all contain "TGU")
+        assert "TGU" in names
+        assert "TGU-L" in names
+        assert "TGU-R" in names
+
+    def test_find_case_insensitive(self, merge_data):
+        """Search is case-insensitive."""
+        results = find_habits_by_name(merge_data, "tgu")
+        assert len(results) == 3
+
+        results = find_habits_by_name(merge_data, "kettlebell")
+        assert len(results) == 1
+        assert results[0]["name"] == "Kettlebell"
+
+    def test_find_partial_match(self, merge_data):
+        """Can find by partial name."""
+        results = find_habits_by_name(merge_data, "-L")
+        assert len(results) == 1
+        assert results[0]["name"] == "TGU-L"
+
+    def test_find_no_match(self, merge_data):
+        """Returns empty list when no match."""
+        results = find_habits_by_name(merge_data, "nonexistent")
+        assert results == []
 
 
 if __name__ == "__main__":

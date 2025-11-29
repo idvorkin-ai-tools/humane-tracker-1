@@ -18,3 +18,7 @@ Thumbs.db
 # Dexie Cloud credentials
 dexie-cloud.key
 dexie-cloud.json
+
+# Python
+__pycache__/
+*.pyc

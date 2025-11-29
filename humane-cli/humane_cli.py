@@ -4,6 +4,8 @@
 # dependencies = [
 #     "textual>=0.89.0",
 #     "rich>=13.9.0",
+#     "typer>=0.9.0",
+#     "questionary>=2.0.0",
 # ]
 # ///
 """Humane Tracker TUI - Explore habit tracker backup data with vi keybindings."""
@@ -12,6 +14,12 @@ import json
 import sys
 from collections import defaultdict
 from pathlib import Path
+from typing import Optional
+
+import questionary
+import typer
+from rich.console import Console
+from typing_extensions import Annotated
 
 from textual import on
 from textual.app import App, ComposeResult
@@ -63,6 +71,54 @@ class HumaneData:
             total_target = sum(h.get("targetPerWeek", 0) for h in habits)
             stats.append((cat, len(habits), total_target))
         return stats
+
+    def merge_habits(self, target_habit_id: str, source_habit_ids: list[str]) -> dict:
+        """Merge multiple habits into one, taking max value on duplicate days.
+
+        Args:
+            target_habit_id: The habit ID to merge into (will be kept)
+            source_habit_ids: List of habit IDs to merge from (will be removed)
+
+        Returns:
+            New data dict with merged habits and entries
+        """
+        all_source_ids = set(source_habit_ids)
+        if target_habit_id in all_source_ids:
+            all_source_ids.remove(target_habit_id)
+
+        # Collect all entries for target and sources, grouped by date
+        entries_by_date: dict[str, list[dict]] = defaultdict(list)
+        for entry in self.entries:
+            if entry.get("habitId") == target_habit_id or entry.get("habitId") in all_source_ids:
+                date = entry.get("date", "")[:10]  # Normalize to YYYY-MM-DD
+                entries_by_date[date].append(entry)
+
+        # Create merged entries - take max value per day
+        merged_entries = []
+        for date, day_entries in entries_by_date.items():
+            max_entry = max(day_entries, key=lambda e: e.get("value", 0))
+            merged_entries.append({
+                "id": max_entry["id"],
+                "habitId": target_habit_id,
+                "date": date,
+                "value": max_entry.get("value", 0),
+                "createdAt": max_entry.get("createdAt", ""),
+            })
+
+        # Keep entries not involved in the merge
+        other_entries = [
+            e for e in self.entries
+            if e.get("habitId") != target_habit_id and e.get("habitId") not in all_source_ids
+        ]
+
+        # Remove source habits from habits list
+        new_habits = [h for h in self.data.get("habits", []) if h["id"] not in all_source_ids]
+
+        return {
+            **self.data,
+            "habits": new_habits,
+            "entries": other_entries + merged_entries,
+        }
 
 
 class CategoriesScreen(Screen):
@@ -353,26 +409,152 @@ class HumaneCLI(App):
         self.push_screen(CategoriesScreen(self.humane_data))
 
 
+cli = typer.Typer(help="Humane Tracker CLI - Explore and manage habit tracker backup data")
+console = Console()
+
+
+def find_habits_by_name(humane_data: HumaneData, pattern: str) -> list[dict]:
+    """Find habits matching a pattern (case-insensitive substring match)."""
+    pattern_lower = pattern.lower()
+    return [h for h in humane_data.data.get("habits", []) if pattern_lower in h.get("name", "").lower()]
+
+
+def get_default_backup_path() -> Path | None:
+    """Find the most recent backup file in parent directory."""
+    parent = Path(__file__).parent.parent
+    backups = list(parent.glob("humane-tracker-backup-*.json"))
+    if backups:
+        return max(backups, key=lambda p: p.stat().st_mtime)
+    return None
+
+
+def load_data(file: Path | None) -> HumaneData:
+    """Load data from file or default backup."""
+    if file is None:
+        file = get_default_backup_path()
+        if file is None:
+            console.print("[red]Error: No backup file found. Please specify a file.[/red]")
+            raise typer.Exit(1)
+        console.print(f"[dim]Using: {file}[/dim]")
+
+    if not file.exists():
+        console.print(f"[red]Error: File not found: {file}[/red]")
+        raise typer.Exit(1)
+
+    return HumaneData(str(file))
+
+
+@cli.command()
+def explore(
+    file: Annotated[Optional[Path], typer.Argument(help="Backup JSON file")] = None,
+):
+    """Launch the interactive TUI explorer."""
+    data = load_data(file)
+    app = HumaneCLI(humane_data=data)
+    app.run()
+
+
+@cli.command("list")
+def list_habits(
+    file: Annotated[Optional[Path], typer.Argument(help="Backup JSON file")] = None,
+):
+    """List all habits grouped by category."""
+    data = load_data(file)
+    categories = data.get_categories()
+
+    for cat, habits in sorted(categories.items()):
+        console.print(f"\n[bold]{cat.upper()}[/bold]")
+        console.print("-" * 40)
+        for h in sorted(habits, key=lambda x: x.get("name", "")):
+            entry_count = len(data.get_entries_for_habit(h["id"]))
+            console.print(f"  {h['name']:<30} ({entry_count:>3} entries)")
+
+
+@cli.command()
+def merge(
+    file: Annotated[Optional[Path], typer.Argument(help="Backup JSON file")] = None,
+    output: Annotated[Optional[Path], typer.Option("--output", "-o", help="Output file (default: stdout)")] = None,
+):
+    """Interactively merge multiple habits into one.
+
+    On duplicate days, takes the maximum value from all merged entries.
+    """
+    data = load_data(file)
+
+    # Build habit choices with entry counts
+    habits = data.data.get("habits", [])
+    if len(habits) < 2:
+        console.print("[red]Error: Need at least 2 habits to merge[/red]")
+        raise typer.Exit(1)
+
+    def habit_choice(h: dict) -> questionary.Choice:
+        entry_count = len(data.get_entries_for_habit(h["id"]))
+        label = f"{h['name']} ({entry_count} entries) [{h.get('category', 'uncategorized')}]"
+        return questionary.Choice(title=label, value=h)
+
+    sorted_habits = sorted(habits, key=lambda h: (h.get("category", ""), h.get("name", "")))
+    choices = [habit_choice(h) for h in sorted_habits]
+
+    # Select target habit
+    target = questionary.select(
+        "Select TARGET habit (entries will be merged INTO this one):",
+        choices=choices,
+    ).ask()
+
+    if target is None:
+        raise typer.Exit(0)
+
+    # Select source habits (excluding target)
+    source_choices = [habit_choice(h) for h in sorted_habits if h["id"] != target["id"]]
+    sources = questionary.checkbox(
+        "Select SOURCE habits to merge (these will be REMOVED):",
+        choices=source_choices,
+    ).ask()
+
+    if sources is None or len(sources) == 0:
+        console.print("[yellow]No sources selected, nothing to merge.[/yellow]")
+        raise typer.Exit(0)
+
+    # Confirm
+    console.print("\n[bold]Merge Summary:[/bold]")
+    console.print(f"  Target: [green]{target['name']}[/green]")
+    console.print("  Sources to merge and remove:")
+    for s in sources:
+        entry_count = len(data.get_entries_for_habit(s["id"]))
+        console.print(f"    - [red]{s['name']}[/red] ({entry_count} entries)")
+
+    if not questionary.confirm("Proceed with merge?", default=False).ask():
+        console.print("[yellow]Cancelled.[/yellow]")
+        raise typer.Exit(0)
+
+    # Perform merge
+    source_ids = [s["id"] for s in sources]
+    merged_data = data.merge_habits(target["id"], source_ids)
+
+    # Count results
+    merged_entries = [e for e in merged_data["entries"] if e.get("habitId") == target["id"]]
+    console.print(f"\n[green]Merged into {len(merged_entries)} entries.[/green]")
+
+    # Output
+    output_json = json.dumps(merged_data, indent=2)
+    if output:
+        output.write_text(output_json)
+        console.print(f"[green]Written to {output}[/green]")
+    else:
+        print(output_json)
+
+
 def main():
     """Entry point for the CLI."""
-    if len(sys.argv) < 2:
-        # Default to looking for backup file in parent directory
-        default_path = Path(__file__).parent.parent / "humane-tracker-backup-2025-11-29.json"
-        if default_path.exists():
-            filepath = str(default_path)
-        else:
-            print("Usage: humane-cli <backup-file.json>")
-            print("       or place humane-tracker-backup-*.json in parent directory")
-            sys.exit(1)
-    else:
-        filepath = sys.argv[1]
+    # If no args or first arg is a file (not a command), default to explore
+    if len(sys.argv) == 1:
+        # No args - try explore with default file
+        sys.argv.append("explore")
+    elif len(sys.argv) >= 2 and sys.argv[1] not in ("explore", "list", "merge", "--help", "-h"):
+        # First arg looks like a file path, insert "explore" command
+        sys.argv.insert(1, "explore")
 
-    if not Path(filepath).exists():
-        print(f"Error: File not found: {filepath}")
-        sys.exit(1)
-
-    app = HumaneCLI(filepath)
-    app.run()
+    cli()
 
 
 if __name__ == "__main__":
