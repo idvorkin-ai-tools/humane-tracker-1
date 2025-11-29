@@ -71,6 +71,16 @@ React 18 + TypeScript + Vite application for tracking habits and behaviors with 
 - Avoid mixing linting/formatting changes with feature changes
 - Run pre-commit hooks before committing
 
+### Component Architecture
+
+Follow the `useHabitTrackerVM` + `HabitTracker` pattern:
+
+- **Extract logic to hooks**: Business logic goes in custom hooks (e.g., `useXxxVM.ts`)
+- **Keep components humble**: Components should primarily render; call hook methods for actions
+- **Export pure functions**: Extract testable pure functions from hooks for direct unit testing
+- **Hooks handle**: State coordination, side effects, data fetching, business rules
+- **Components handle**: UI rendering, calling hook methods on events
+
 ### Writing Code
 
 - Make the smallest reasonable changes to achieve the desired outcome
