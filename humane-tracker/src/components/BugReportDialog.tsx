@@ -10,6 +10,12 @@ interface BugReportDialogProps {
 	setDescription: (description: string) => void;
 	includeMetadata: boolean;
 	setIncludeMetadata: (include: boolean) => void;
+	screenshot: string | null;
+	isCapturingScreenshot: boolean;
+	onCaptureScreenshot: () => void;
+	onClearScreenshot: () => void;
+	screenshotSupported: boolean;
+	isMobile: boolean;
 	isSubmitting: boolean;
 	onSubmit: () => void;
 	error: string | null;
@@ -24,6 +30,12 @@ export function BugReportDialog({
 	setDescription,
 	includeMetadata,
 	setIncludeMetadata,
+	screenshot,
+	isCapturingScreenshot,
+	onCaptureScreenshot,
+	onClearScreenshot,
+	screenshotSupported,
+	isMobile,
 	isSubmitting,
 	onSubmit,
 	error,
@@ -108,6 +120,68 @@ export function BugReportDialog({
 							onChange={(e) => setDescription(e.target.value)}
 							rows={4}
 						/>
+					</div>
+
+					{/* Screenshot Section */}
+					<div className="bug-report-screenshot-section">
+						<label className="bug-report-field-label">Screenshot</label>
+						{screenshot ? (
+							<div className="bug-report-screenshot-preview">
+								<img src={screenshot} alt="Bug report screenshot" />
+								<button
+									type="button"
+									className="bug-report-screenshot-remove"
+									onClick={onClearScreenshot}
+									aria-label="Remove screenshot"
+								>
+									<svg
+										width="16"
+										height="16"
+										viewBox="0 0 16 16"
+										fill="none"
+										stroke="currentColor"
+										strokeWidth="2"
+									>
+										<path d="M4 4l8 8M12 4l-8 8" />
+									</svg>
+								</button>
+							</div>
+						) : screenshotSupported ? (
+							<button
+								type="button"
+								className="bug-report-screenshot-btn"
+								onClick={onCaptureScreenshot}
+								disabled={isCapturingScreenshot}
+							>
+								{isCapturingScreenshot ? (
+									<>
+										<span className="bug-report-spinner" />
+										Capturing...
+									</>
+								) : (
+									<>
+										<svg
+											width="16"
+											height="16"
+											viewBox="0 0 16 16"
+											fill="none"
+											stroke="currentColor"
+											strokeWidth="1.5"
+										>
+											<rect x="2" y="3" width="12" height="10" rx="1" />
+											<circle cx="8" cy="8" r="2" />
+											<path d="M5 3V2h2M9 3V2h2" />
+										</svg>
+										Capture Screenshot
+									</>
+								)}
+							</button>
+						) : isMobile ? (
+							<p className="bug-report-screenshot-hint">
+								Take a screenshot with your device and attach it after creating
+								the issue.
+							</p>
+						) : null}
 					</div>
 
 					<label className="bug-report-checkbox">

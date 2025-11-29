@@ -23,6 +23,14 @@ interface UseBugReporterReturn {
 	includeMetadata: boolean;
 	setIncludeMetadata: (include: boolean) => void;
 
+	// Screenshot
+	screenshot: string | null;
+	isCapturingScreenshot: boolean;
+	captureScreenshot: () => Promise<void>;
+	clearScreenshot: () => void;
+	screenshotSupported: boolean;
+	isMobile: boolean;
+
 	// Submission
 	isSubmitting: boolean;
 	submit: () => Promise<void>;
@@ -50,6 +58,24 @@ export function useBugReporter(
 	const [title, setTitle] = useState("");
 	const [description, setDescription] = useState("");
 	const [includeMetadata, setIncludeMetadata] = useState(true);
+
+	// Screenshot state
+	const [screenshot, setScreenshot] = useState<string | null>(null);
+	const [isCapturingScreenshot, setIsCapturingScreenshot] = useState(false);
+
+	// Detect mobile device
+	const isMobile =
+		typeof navigator !== "undefined" &&
+		/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+			navigator.userAgent,
+		);
+
+	// Check if screenshot capture is supported (desktop only with getDisplayMedia)
+	const screenshotSupported =
+		typeof navigator !== "undefined" &&
+		"mediaDevices" in navigator &&
+		"getDisplayMedia" in navigator.mediaDevices &&
+		!isMobile;
 
 	// Submission state
 	const [isSubmitting, setIsSubmitting] = useState(false);
@@ -101,6 +127,50 @@ export function useBugReporter(
 		return () => window.removeEventListener("keydown", handleKeyDown);
 	}, []);
 
+	// Screenshot capture (desktop only)
+	const captureScreenshot = useCallback(async () => {
+		if (!screenshotSupported) return;
+
+		setIsCapturingScreenshot(true);
+
+		try {
+			// Request screen capture
+			const stream = await navigator.mediaDevices.getDisplayMedia({
+				video: { displaySurface: "browser" } as MediaTrackConstraints,
+			});
+
+			// Create video element to capture frame
+			const video = document.createElement("video");
+			video.srcObject = stream;
+			await video.play();
+
+			// Draw frame to canvas
+			const canvas = document.createElement("canvas");
+			canvas.width = video.videoWidth;
+			canvas.height = video.videoHeight;
+			const ctx = canvas.getContext("2d");
+			ctx?.drawImage(video, 0, 0);
+
+			// Stop all tracks immediately
+			for (const track of stream.getTracks()) {
+				track.stop();
+			}
+
+			// Convert to data URL
+			const dataUrl = canvas.toDataURL("image/png");
+			setScreenshot(dataUrl);
+		} catch (err) {
+			// User cancelled or permission denied - not an error
+			console.log("Screenshot capture cancelled or failed:", err);
+		} finally {
+			setIsCapturingScreenshot(false);
+		}
+	}, [screenshotSupported]);
+
+	const clearScreenshot = useCallback(() => {
+		setScreenshot(null);
+	}, []);
+
 	// Open/close handlers
 	const open = useCallback(() => setIsOpen(true), []);
 	const close = useCallback(() => {
@@ -109,6 +179,7 @@ export function useBugReporter(
 		setTitle("");
 		setDescription("");
 		setIncludeMetadata(true);
+		setScreenshot(null);
 		setError(null);
 	}, []);
 
@@ -127,6 +198,7 @@ export function useBugReporter(
 				title: title.trim() || "Bug Report",
 				description: description.trim(),
 				includeMetadata,
+				screenshot: screenshot ?? undefined,
 			});
 			close();
 		} catch (err) {
@@ -135,7 +207,7 @@ export function useBugReporter(
 		} finally {
 			setIsSubmitting(false);
 		}
-	}, [title, description, includeMetadata, close]);
+	}, [title, description, includeMetadata, screenshot, close]);
 
 	return {
 		// Dialog state
@@ -150,6 +222,14 @@ export function useBugReporter(
 		setDescription,
 		includeMetadata,
 		setIncludeMetadata,
+
+		// Screenshot
+		screenshot,
+		isCapturingScreenshot,
+		captureScreenshot,
+		clearScreenshot,
+		screenshotSupported,
+		isMobile,
 
 		// Submission
 		isSubmitting,

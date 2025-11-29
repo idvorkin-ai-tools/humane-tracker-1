@@ -254,6 +254,12 @@ export function UserMenu({
 				setDescription={bugReporter.setDescription}
 				includeMetadata={bugReporter.includeMetadata}
 				setIncludeMetadata={bugReporter.setIncludeMetadata}
+				screenshot={bugReporter.screenshot}
+				isCapturingScreenshot={bugReporter.isCapturingScreenshot}
+				onCaptureScreenshot={bugReporter.captureScreenshot}
+				onClearScreenshot={bugReporter.clearScreenshot}
+				screenshotSupported={bugReporter.screenshotSupported}
+				isMobile={bugReporter.isMobile}
 				isSubmitting={bugReporter.isSubmitting}
 				onSubmit={bugReporter.submit}
 				error={bugReporter.error}

@@ -22,6 +22,7 @@ export interface BugReportData {
 	title: string;
 	description: string;
 	includeMetadata: boolean;
+	screenshot?: string; // base64 data URL
 }
 
 /**
@@ -117,6 +118,7 @@ export function getDeviceInfo(): string {
 export async function buildIssueBody(
 	description: string,
 	includeMetadata: boolean,
+	hasScreenshot = false,
 ): Promise<string> {
 	const parts: string[] = [];
 
@@ -124,6 +126,15 @@ export async function buildIssueBody(
 	parts.push("## Description");
 	parts.push(description || "_No description provided_");
 	parts.push("");
+
+	// Screenshot note
+	if (hasScreenshot) {
+		parts.push("## Screenshot");
+		parts.push(
+			"_A screenshot was captured and copied to clipboard. Please paste it below after creating this issue._",
+		);
+		parts.push("");
+	}
 
 	if (includeMetadata) {
 		// App info
@@ -149,7 +160,11 @@ export async function buildIssueBody(
  */
 export async function generateIssueUrl(data: BugReportData): Promise<string> {
 	const links = getGitHubLinks();
-	const body = await buildIssueBody(data.description, data.includeMetadata);
+	const body = await buildIssueBody(
+		data.description,
+		data.includeMetadata,
+		!!data.screenshot,
+	);
 
 	const params = new URLSearchParams({
 		title: data.title || "Bug Report",
@@ -161,17 +176,52 @@ export async function generateIssueUrl(data: BugReportData): Promise<string> {
 }
 
 /**
+ * Convert base64 data URL to Blob for clipboard
+ */
+function dataUrlToBlob(dataUrl: string): Blob {
+	const parts = dataUrl.split(",");
+	const mime = parts[0].match(/:(.*?);/)?.[1] || "image/png";
+	const bstr = atob(parts[1]);
+	let n = bstr.length;
+	const u8arr = new Uint8Array(n);
+	while (n--) {
+		u8arr[n] = bstr.charCodeAt(n);
+	}
+	return new Blob([u8arr], { type: mime });
+}
+
+/**
  * Open the bug report in GitHub
  * Returns the issue body for clipboard backup
  */
 export async function openBugReport(data: BugReportData): Promise<string> {
-	const body = await buildIssueBody(data.description, data.includeMetadata);
+	const body = await buildIssueBody(
+		data.description,
+		data.includeMetadata,
+		!!data.screenshot,
+	);
 
-	// Copy to clipboard as backup
+	// Copy screenshot to clipboard if available (so user can paste it)
+	// Otherwise copy the text body as backup
 	try {
-		await navigator.clipboard.writeText(body);
+		if (data.screenshot) {
+			const blob = dataUrlToBlob(data.screenshot);
+			await navigator.clipboard.write([
+				new ClipboardItem({
+					[blob.type]: blob,
+				}),
+			]);
+		} else {
+			await navigator.clipboard.writeText(body);
+		}
 	} catch (error) {
 		console.warn("Failed to copy to clipboard:", error);
+		// Fallback: try to copy text if image copy failed
+		try {
+			await navigator.clipboard.writeText(body);
+		} catch {
+			// Ignore secondary failure
+		}
 	}
 
 	// Open GitHub issue page
