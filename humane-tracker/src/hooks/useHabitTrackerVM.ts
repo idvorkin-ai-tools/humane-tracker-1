@@ -236,6 +236,12 @@ export function useHabitTrackerVM({
 				}, [] as HabitWithStatus[]);
 
 				setHabits(uniqueHabits);
+				// On initial load, collapse all categories
+				if (!skipLoading && collapsedSectionsRef.current.size === 0) {
+					const categories = extractCategories(uniqueHabits);
+					categories.forEach((cat) => collapsedSectionsRef.current.add(cat));
+					setCollapsedVersion((v) => v + 1);
+				}
 				if (!skipLoading) setIsLoading(false);
 			} catch (error) {
 				console.error("Error fetching habits:", error);
