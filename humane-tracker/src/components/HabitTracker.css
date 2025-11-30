@@ -37,6 +37,10 @@
 	font-style: italic;
 }
 
+.current-day.selected-day {
+	color: var(--color-info);
+}
+
 /* View Toggle Buttons */
 .view-toggle {
 	display: flex;
@@ -254,6 +258,24 @@ th {
 	font-weight: 700;
 }
 
+/* Selected Day Column Highlight - Uses amber/gold color scheme */
+.col-selected {
+	background: linear-gradient(
+		180deg,
+		rgba(217, 119, 6, 0.2) 0%,
+		rgba(217, 119, 6, 0.1) 100%
+	);
+	border-left: 2px solid var(--color-amber);
+	border-right: 2px solid var(--color-amber);
+	color: var(--color-cream);
+	font-weight: 700;
+	cursor: pointer;
+}
+
+.col-day:not(.col-today):hover {
+	background: rgba(217, 119, 6, 0.1);
+}
+
 /* ==========================================================================
    Section Headers - Category Groups
    ========================================================================== */
@@ -458,6 +480,13 @@ th {
 	border-right: 1px solid rgba(8, 145, 178, 0.2);
 }
 
+/* Selected Day Cell - amber/gold highlighting */
+.cell-selected {
+	background: rgba(217, 119, 6, 0.1);
+	border-left: 1px solid rgba(217, 119, 6, 0.25);
+	border-right: 1px solid rgba(217, 119, 6, 0.25);
+}
+
 /* Completed Cell - Satisfying green */
 .completed {
 	background: linear-gradient(
@@ -486,6 +515,17 @@ th {
 		rgba(22, 163, 74, 0.2) 100%
 	);
 	box-shadow: inset 0 0 12px rgba(22, 163, 74, 0.2);
+}
+
+.cell-selected.completed {
+	background: linear-gradient(
+		135deg,
+		rgba(22, 163, 74, 0.35) 0%,
+		rgba(22, 163, 74, 0.2) 100%
+	);
+	border-left: 1px solid rgba(217, 119, 6, 0.3);
+	border-right: 1px solid rgba(217, 119, 6, 0.3);
+	box-shadow: inset 0 0 12px rgba(217, 119, 6, 0.15);
 }
 
 /* Partial completion */

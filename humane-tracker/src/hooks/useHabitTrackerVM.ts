@@ -1,4 +1,4 @@
-import { addDays, format, isToday, isYesterday } from "date-fns";
+import { addDays, format, isSameDay, isToday, isYesterday } from "date-fns";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DEFAULT_HABITS } from "../data/defaultHabits";
 import { HabitService } from "../services/habitService";
@@ -164,6 +164,7 @@ export interface HabitTrackerVM {
 	isLoading: boolean;
 	zoomedSection: string | null;
 	allExpanded: boolean;
+	selectedDate: Date | null;
 
 	// Computed helpers (exposed for convenience)
 	getCategorySummary: typeof getCategorySummary;
@@ -177,6 +178,7 @@ export interface HabitTrackerVM {
 	collapseAll: () => void;
 	zoomIn: (category: string) => void;
 	zoomOut: () => void;
+	selectDate: (date: Date | null) => void;
 
 	// For menu actions
 	hasNoHabits: boolean;
@@ -189,6 +191,7 @@ export function useHabitTrackerVM({
 	const [isLoading, setIsLoading] = useState(true);
 	const [zoomedSection, setZoomedSection] = useState<string | null>(null);
 	const [allExpanded, setAllExpanded] = useState(false);
+	const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 	// Start with empty set - categories derived dynamically from habits
 	const collapsedSectionsRef = useRef<Set<string>>(new Set());
 	const [collapsedVersion, setCollapsedVersion] = useState(0); // trigger re-render on collapse changes
@@ -349,10 +352,16 @@ export function useHabitTrackerVM({
 		setZoomedSection(null);
 	}, []);
 
+	const selectDate = useCallback((date: Date | null) => {
+		setSelectedDate(date);
+	}, []);
+
 	const toggleEntry = useCallback(
 		async (habitId: string, date: Date) => {
 			// Check if date is older than yesterday and confirm
-			if (!isToday(date) && !isYesterday(date)) {
+			// Skip confirmation if the date is the currently selected date
+			const isSelectedDate = selectedDate && isSameDay(date, selectedDate);
+			if (!isToday(date) && !isYesterday(date) && !isSelectedDate) {
 				const dateStr = format(date, "MMM d");
 				if (
 					!window.confirm(
@@ -456,7 +465,7 @@ export function useHabitTrackerVM({
 				}
 			}
 		},
-		[habits, userId, useMockMode],
+		[habits, userId, useMockMode, selectedDate],
 	);
 
 	return {
@@ -468,6 +477,7 @@ export function useHabitTrackerVM({
 		isLoading,
 		zoomedSection,
 		allExpanded,
+		selectedDate,
 
 		// Computed helpers
 		getCategorySummary,
@@ -481,6 +491,7 @@ export function useHabitTrackerVM({
 		collapseAll,
 		zoomIn,
 		zoomOut,
+		selectDate,
 
 		// Menu helpers
 		hasNoHabits: !isLoading && habits.length === 0,
