@@ -162,6 +162,30 @@ test.describe('Habit Tracker App', () => {
     expect(firstDay).toMatch(/[SMTWF]/);
   });
 
+  test('should allow selecting a past day and highlight the column', async ({ page }) => {
+    // Get the second day column header (a past day, not today)
+    const dayHeaders = page.locator('th.col-day');
+    const secondDayHeader = dayHeaders.nth(1);
+    
+    // Click on the second day to select it
+    await secondDayHeader.click();
+    await page.waitForTimeout(300);
+    
+    // Verify the column header has the selected class
+    await expect(secondDayHeader).toHaveClass(/col-selected/);
+    
+    // Verify the header title updates to show the selected date
+    const headerTitle = page.locator('.week-title .current-day, .week-title .selected-day');
+    await expect(headerTitle).toBeVisible();
+    
+    // Click the header title to return to today
+    await headerTitle.click();
+    await page.waitForTimeout(300);
+    
+    // Verify the column is no longer selected
+    await expect(secondDayHeader).not.toHaveClass(/col-selected/);
+  });
+
   test('should display summary statistics', async ({ page }) => {
     // Check all summary items are present
     await expect(page.locator('.summary-item:has-text("Due Today")')).toBeVisible();
