@@ -70,3 +70,6 @@ Desktop.ini
 
 # Test results already generated
 test-results/
+
+# Auto-generated version file
+src/generated_version.ts
