@@ -1,4 +1,4 @@
-import { format } from "date-fns";
+import { format, isSameDay, isToday } from "date-fns";
 import React, { useState } from "react";
 import { useHabitTrackerVM } from "../hooks/useHabitTrackerVM";
 import { buildCategoryInfo } from "../utils/categoryUtils";
@@ -68,6 +68,29 @@ export const HabitTracker: React.FC<HabitTrackerProps> = ({
 		}
 	};
 
+	// Helper to generate column/cell class names for date columns
+	const getDateColumnClass = (
+		baseClass: string,
+		isTodayDate: boolean,
+		isSelected: boolean,
+	): string => {
+		const classes = [baseClass];
+		if (isTodayDate) classes.push(`${baseClass.split("-")[0]}-today`);
+		if (isSelected && !isTodayDate)
+			classes.push(`${baseClass.split("-")[0]}-selected`);
+		return classes.join(" ");
+	};
+
+	// Helper to handle date header click
+	const handleDateHeaderClick = (
+		date: Date,
+		isTodayDate: boolean,
+		isSelected: boolean,
+	) => {
+		if (isTodayDate) return; // Today is not selectable
+		vm.selectDate(isSelected ? null : date);
+	};
+
 	return (
 		<div className="container">
 			<div className="week-header">
@@ -80,8 +103,15 @@ export const HabitTracker: React.FC<HabitTrackerProps> = ({
 							</button>
 						</>
 					) : (
-						<span className="current-day">
-							{format(new Date(), "EEEE, MMM d")}
+						<span
+							className={`current-day ${vm.selectedDate && !isToday(vm.selectedDate) ? "selected-day" : ""}`}
+							onClick={() => vm.selectDate(null)}
+							style={{ cursor: vm.selectedDate ? "pointer" : "default" }}
+							title={vm.selectedDate ? "Click to return to today" : undefined}
+						>
+							{vm.selectedDate
+								? format(vm.selectedDate, "EEEE, MMM d")
+								: format(new Date(), "EEEE, MMM d")}
 						</span>
 					)}
 				</div>
@@ -104,16 +134,27 @@ export const HabitTracker: React.FC<HabitTrackerProps> = ({
 					<tr>
 						<th className="col-habit">Habit</th>
 						<th className="col-status">●</th>
-						{vm.weekDates.map((date, index) => (
-							<th
-								key={date.toISOString()}
-								className={`col-day ${index === 0 ? "col-today" : ""}`}
-							>
-								{format(date, "EEE").slice(0, 2)}
-								<br />
-								{format(date, "d")}
-							</th>
-						))}
+						{vm.weekDates.map((date) => {
+							const isTodayDate = isToday(date);
+							const isSelected = Boolean(
+								vm.selectedDate && isSameDay(date, vm.selectedDate),
+							);
+							return (
+								<th
+									key={date.toISOString()}
+									className={getDateColumnClass("col-day", isTodayDate, isSelected)}
+									onClick={() =>
+										handleDateHeaderClick(date, isTodayDate, isSelected)
+									}
+									style={{ cursor: isTodayDate ? "default" : "pointer" }}
+									title={isTodayDate ? undefined : "Click to select this day"}
+								>
+									{format(date, "EEE").slice(0, 2)}
+									<br />
+									{format(date, "d")}
+								</th>
+							);
+						})}
 						<th className="col-total">Total</th>
 					</tr>
 				</thead>
@@ -210,12 +251,22 @@ export const HabitTracker: React.FC<HabitTrackerProps> = ({
 															{vm.getStatusIcon(habit.status)}
 														</span>
 													</td>
-													{vm.weekDates.map((date, index) => {
+													{vm.weekDates.map((date) => {
 														const cellDisplay = vm.getCellDisplay(habit, date);
+														const isTodayDate = isToday(date);
+														const isSelected = Boolean(
+															vm.selectedDate && isSameDay(date, vm.selectedDate),
+														);
+														const cellClass = [
+															cellDisplay.className,
+															getDateColumnClass("cell", isTodayDate, isSelected),
+														]
+															.filter(Boolean)
+															.join(" ");
 														return (
 															<td
 																key={date.toISOString()}
-																className={`${cellDisplay.className} ${index === 0 ? "cell-today" : ""}`}
+																className={cellClass}
 																onClick={() => vm.toggleEntry(habit.id, date)}
 																style={{ cursor: "pointer" }}
 															>
