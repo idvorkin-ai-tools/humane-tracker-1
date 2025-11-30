@@ -2,6 +2,48 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
+import { execSync } from "child_process";
+import { existsSync } from "fs";
+
+// Detect if running in a container
+function isContainer(): boolean {
+	return existsSync("/.dockerenv") || process.env.container !== undefined;
+}
+
+// Detect Tailscale IP if available
+function getTailscaleIP(): string | null {
+	try {
+		const ip = execSync("tailscale ip -4 2>/dev/null", { encoding: "utf-8" }).trim();
+		return ip || null;
+	} catch {
+		return null;
+	}
+}
+
+// Get Tailscale hostnames (short like "c-5002" and full like "c-5002.squeaker-teeth.ts.net")
+function getTailscaleHostnames(): { short: string; full: string } | null {
+	try {
+		const json = execSync("tailscale status --json 2>/dev/null", { encoding: "utf-8" });
+		const status = JSON.parse(json);
+		const fullName = status.Self?.DNSName?.replace(/\.$/, "");
+		if (!fullName) return null;
+		const shortName = fullName.split(".")[0];
+		return { short: shortName, full: fullName };
+	} catch {
+		return null;
+	}
+}
+
+// In containers with Tailscale, bind to all interfaces (required for Tailscale routing)
+const inContainer = isContainer();
+const tailscaleIP = getTailscaleIP();
+const tailscaleHosts = getTailscaleHostnames();
+const devHost = inContainer && tailscaleIP ? "0.0.0.0" : "localhost";
+
+if (inContainer && tailscaleIP) {
+	console.log(`🐳 Container with Tailscale - binding to 0.0.0.0`);
+	console.log(`   Access via: http://${tailscaleHosts?.short || tailscaleIP}:3000/`);
+}
 
 export default defineConfig({
 	plugins: [
@@ -44,6 +86,9 @@ export default defineConfig({
 	server: {
 		port: 3000,
 		open: true,
+		host: devHost,
+		// Allow Tailscale hostnames (both short "c-5002" and full "c-5002.squeaker-teeth.ts.net")
+		allowedHosts: tailscaleHosts ? [tailscaleHosts.short, tailscaleHosts.full] : undefined,
 	},
 	build: {
 		outDir: "dist",
