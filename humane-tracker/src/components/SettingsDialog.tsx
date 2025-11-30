@@ -222,22 +222,18 @@ export function SettingsDialog({
 									{syncStatus.label}
 								</span>
 							</div>
-							{!isLocalMode && (
-								<>
-									<button
-										className="settings-action-button settings-action-secondary"
-										onClick={handleViewSyncDetails}
-									>
-										View Sync Details
-									</button>
-									<button
-										className="settings-action-button settings-action-secondary"
-										onClick={handleViewDebugLogs}
-									>
-										View Debug Logs
-									</button>
-								</>
-							)}
+							<button
+								className="settings-action-button settings-action-secondary"
+								onClick={handleViewSyncDetails}
+							>
+								View Sync Details
+							</button>
+							<button
+								className="settings-action-button settings-action-secondary"
+								onClick={handleViewDebugLogs}
+							>
+								View Debug Logs
+							</button>
 						</div>
 					</div>
 
