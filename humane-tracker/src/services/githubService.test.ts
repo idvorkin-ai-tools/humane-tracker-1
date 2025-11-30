@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	buildIssueBody,
 	generateIssueUrl,
@@ -6,6 +6,7 @@ import {
 	getDeviceInfo,
 	getGitHubLinks,
 	getRepoUrl,
+	openBugReport,
 } from "./githubService";
 
 describe("githubService", () => {
@@ -137,6 +138,90 @@ describe("githubService", () => {
 
 			expect(url).toContain("body=");
 			expect(url).toContain("This+is+a+test");
+		});
+	});
+
+	describe("openBugReport", () => {
+		const mockClipboard = {
+			write: vi.fn(),
+			writeText: vi.fn(),
+		};
+		const mockWindowOpen = vi.fn();
+
+		beforeEach(() => {
+			// Mock ClipboardItem
+			vi.stubGlobal(
+				"ClipboardItem",
+				class MockClipboardItem {
+					constructor(public items: Record<string, Blob>) {}
+				},
+			);
+			vi.stubGlobal("navigator", {
+				...navigator,
+				clipboard: mockClipboard,
+			});
+			// Mock window.open
+			window.open = mockWindowOpen;
+		});
+
+		afterEach(() => {
+			vi.clearAllMocks();
+			vi.unstubAllGlobals();
+		});
+
+		it("does not touch clipboard when no screenshot provided", async () => {
+			await openBugReport({
+				title: "Test Bug",
+				description: "Bug description",
+				includeMetadata: false,
+			});
+
+			expect(mockClipboard.write).not.toHaveBeenCalled();
+			expect(mockClipboard.writeText).not.toHaveBeenCalled();
+		});
+
+		it("copies screenshot to clipboard when screenshot is provided", async () => {
+			// Create a simple valid PNG data URL (1x1 transparent pixel)
+			const pngDataUrl =
+				"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+
+			mockClipboard.write.mockResolvedValue(undefined);
+
+			await openBugReport({
+				title: "Test Bug",
+				description: "Bug description",
+				includeMetadata: false,
+				screenshot: pngDataUrl,
+			});
+
+			expect(mockClipboard.write).toHaveBeenCalledTimes(1);
+			const clipboardItems = mockClipboard.write.mock.calls[0][0];
+			expect(clipboardItems).toHaveLength(1);
+		});
+
+		it("opens GitHub issue URL", async () => {
+			await openBugReport({
+				title: "Test Bug",
+				description: "Bug description",
+				includeMetadata: false,
+			});
+
+			expect(mockWindowOpen).toHaveBeenCalledWith(
+				expect.stringContaining("/issues/new?"),
+				"_blank",
+				"noopener,noreferrer",
+			);
+		});
+
+		it("returns the issue body", async () => {
+			const body = await openBugReport({
+				title: "Test Bug",
+				description: "Bug description",
+				includeMetadata: false,
+			});
+
+			expect(body).toContain("## Description");
+			expect(body).toContain("Bug description");
 		});
 	});
 });

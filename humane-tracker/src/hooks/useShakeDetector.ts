@@ -49,8 +49,11 @@ export function useShakeDetector({
 		// On Android and older iOS, permission is granted by default
 		if (
 			supported &&
-			typeof (DeviceMotionEvent as unknown as { requestPermission?: () => Promise<string> })
-				.requestPermission !== "function"
+			typeof (
+				DeviceMotionEvent as unknown as {
+					requestPermission?: () => Promise<string>;
+				}
+			).requestPermission !== "function"
 		) {
 			setHasPermission(true);
 		}
