@@ -222,25 +222,18 @@ export async function openBugReport(data: BugReportData): Promise<string> {
 	);
 
 	// Copy screenshot to clipboard if available (so user can paste it)
-	// Otherwise copy the text body as backup
-	try {
-		if (data.screenshot) {
+	// Only touch clipboard when there's a screenshot to paste
+	if (data.screenshot) {
+		try {
 			const blob = dataUrlToBlob(data.screenshot);
 			await navigator.clipboard.write([
 				new ClipboardItem({
 					[blob.type]: blob,
 				}),
 			]);
-		} else {
-			await navigator.clipboard.writeText(body);
-		}
-	} catch (error) {
-		console.warn("Failed to copy to clipboard:", error);
-		// Fallback: try to copy text if image copy failed
-		try {
-			await navigator.clipboard.writeText(body);
-		} catch {
-			// Ignore secondary failure
+		} catch (error) {
+			console.warn("Failed to copy screenshot to clipboard:", error);
+			// Don't fallback to text - user didn't ask for text in clipboard
 		}
 	}
 

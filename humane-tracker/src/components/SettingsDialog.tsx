@@ -583,7 +583,9 @@ export function SettingsDialog({
 							)}
 							<div className="settings-info-row">
 								<span className="settings-info-label">Keyboard shortcut</span>
-								<span className="settings-info-value">{getModifierKey()}+I</span>
+								<span className="settings-info-value">
+									{getModifierKey()}+I
+								</span>
 							</div>
 						</div>
 					</div>
