@@ -57,6 +57,7 @@ export const HabitSettings: React.FC<HabitSettingsProps> = ({
 	);
 	const [showImportConfirm, setShowImportConfirm] = useState(false);
 	const fileInputRef = useRef<HTMLInputElement>(null);
+	const hasInitializedCollapse = useRef(false);
 
 	const habitService = new HabitService();
 
@@ -76,13 +77,14 @@ export const HabitSettings: React.FC<HabitSettingsProps> = ({
 		loadHabits();
 	}, [userId]);
 
-	// Start with all categories collapsed after habits load
+	// Start with all categories collapsed on initial load only
 	useEffect(() => {
-		if (habits.length > 0) {
+		if (habits.length > 0 && !hasInitializedCollapse.current) {
+			hasInitializedCollapse.current = true;
 			const allCategories = extractCategories(habits);
 			setCollapsedCategories(new Set(allCategories));
 		}
-	}, [habits.length]); // Only run when habit count changes (initial load)
+	}, [habits.length]);
 
 	const loadHabits = async () => {
 		try {
