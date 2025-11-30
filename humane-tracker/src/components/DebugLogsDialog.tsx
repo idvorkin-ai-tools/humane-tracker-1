@@ -1,7 +1,7 @@
 import { useLiveQuery } from "dexie-react-hooks";
 import type React from "react";
-import { useEffect, useState } from "react";
-import { syncLogService } from "../services/syncLogService";
+import { useState } from "react";
+import { syncLogService } from "../config/db";
 import type { SyncLog } from "../types/syncLog";
 import "./DebugLogsDialog.css";
 
@@ -12,6 +12,8 @@ interface DebugLogsDialogProps {
 export function DebugLogsDialog({ onClose }: DebugLogsDialogProps) {
 	const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
 	const [copySuccess, setCopySuccess] = useState(false);
+	const [copyError, setCopyError] = useState<string | null>(null);
+	const [clearError, setClearError] = useState<string | null>(null);
 
 	// Live query to get logs (automatically updates when logs change)
 	const logs = useLiveQuery(() => syncLogService.getLogs(), []) ?? [];
@@ -24,17 +26,30 @@ export function DebugLogsDialog({ onClose }: DebugLogsDialogProps) {
 
 	const handleClearAll = async () => {
 		if (confirm("Are you sure you want to clear all debug logs?")) {
-			await syncLogService.clearAll();
+			try {
+				setClearError(null);
+				await syncLogService.clearAll();
+			} catch (error) {
+				const errorMessage =
+					error instanceof Error ? error.message : "Unknown error occurred";
+				setClearError(`Failed to clear logs: ${errorMessage}`);
+				console.error("Failed to clear logs:", error);
+			}
 		}
 	};
 
 	const handleCopyLogs = async () => {
 		try {
+			setCopyError(null);
+			setCopySuccess(false);
 			const logsJson = await syncLogService.exportLogs();
 			await navigator.clipboard.writeText(logsJson);
 			setCopySuccess(true);
 			setTimeout(() => setCopySuccess(false), 2000);
 		} catch (error) {
+			const errorMessage =
+				error instanceof Error ? error.message : "Unknown error occurred";
+			setCopyError(`Failed to copy logs: ${errorMessage}`);
 			console.error("Failed to copy logs:", error);
 		}
 	};
@@ -124,6 +139,23 @@ export function DebugLogsDialog({ onClose }: DebugLogsDialogProps) {
 							Clear All Logs
 						</button>
 					</div>
+
+					{(copyError || clearError) && (
+						<div
+							className="debug-logs-error"
+							style={{
+								padding: "12px",
+								marginTop: "12px",
+								backgroundColor: "#fee",
+								border: "1px solid #fcc",
+								borderRadius: "4px",
+								color: "#c00",
+							}}
+						>
+							{copyError && <p style={{ margin: "0 0 8px 0" }}>{copyError}</p>}
+							{clearError && <p style={{ margin: 0 }}>{clearError}</p>}
+						</div>
+					)}
 
 					{logs.length === 0 ? (
 						<div className="debug-logs-empty">

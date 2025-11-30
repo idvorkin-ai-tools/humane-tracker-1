@@ -1,12 +1,15 @@
-import { db } from "../config/db";
+import type { Table } from "dexie";
 import type { SyncLog, SyncLogEventType, SyncLogLevel } from "../types/syncLog";
 
 const MAX_LOGS = 500;
 
 /**
  * Service for managing sync debug logs
+ * Uses dependency injection to avoid circular dependencies
  */
 export class SyncLogService {
+	constructor(private syncLogsTable: Table<SyncLog, string>) {}
+
 	/**
 	 * Add a new log entry
 	 */
@@ -18,7 +21,7 @@ export class SyncLogService {
 	): Promise<void> {
 		try {
 			// Add the new log
-			await db.syncLogs.add({
+			await this.syncLogsTable.add({
 				id: crypto.randomUUID(),
 				timestamp: new Date(),
 				eventType,
@@ -39,34 +42,33 @@ export class SyncLogService {
 	 * Get all logs, newest first
 	 */
 	async getLogs(): Promise<SyncLog[]> {
-		try {
-			return await db.syncLogs.orderBy("timestamp").reverse().toArray();
-		} catch (error) {
-			console.error("Failed to get sync logs:", error);
-			return [];
-		}
+		const logs = await this.syncLogsTable
+			.orderBy("timestamp")
+			.reverse()
+			.toArray();
+		return logs;
 	}
 
 	/**
 	 * Get log count
 	 */
 	async getCount(): Promise<number> {
-		try {
-			return await db.syncLogs.count();
-		} catch (error) {
-			console.error("Failed to count sync logs:", error);
-			return 0;
-		}
+		const count = await this.syncLogsTable.count();
+		return count;
 	}
 
 	/**
 	 * Clear all logs
+	 * Throws error if operation fails
 	 */
 	async clearAll(): Promise<void> {
 		try {
-			await db.syncLogs.clear();
+			await this.syncLogsTable.clear();
 		} catch (error) {
 			console.error("Failed to clear sync logs:", error);
+			throw new Error(
+				`Failed to clear sync logs: ${error instanceof Error ? error.message : "Unknown error"}`,
+			);
 		}
 	}
 
@@ -75,16 +77,16 @@ export class SyncLogService {
 	 */
 	private async enforceLimit(): Promise<void> {
 		try {
-			const count = await db.syncLogs.count();
+			const count = await this.syncLogsTable.count();
 			if (count > MAX_LOGS) {
 				const toDelete = count - MAX_LOGS;
 				// Get oldest logs to delete
-				const oldestLogs = await db.syncLogs
+				const oldestLogs = await this.syncLogsTable
 					.orderBy("timestamp")
 					.limit(toDelete)
 					.toArray();
 				// Delete them
-				await db.syncLogs.bulkDelete(oldestLogs.map((log) => log.id));
+				await this.syncLogsTable.bulkDelete(oldestLogs.map((log) => log.id));
 			}
 		} catch (error) {
 			console.error("Failed to enforce log limit:", error);
@@ -95,15 +97,7 @@ export class SyncLogService {
 	 * Export all logs as JSON string
 	 */
 	async exportLogs(): Promise<string> {
-		try {
-			const logs = await this.getLogs();
-			return JSON.stringify(logs, null, 2);
-		} catch (error) {
-			console.error("Failed to export sync logs:", error);
-			return "[]";
-		}
+		const logs = await this.getLogs();
+		return JSON.stringify(logs, null, 2);
 	}
 }
-
-// Export singleton instance
-export const syncLogService = new SyncLogService();
