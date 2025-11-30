@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useBugReporter } from "../hooks/useBugReporter";
 import { AboutDialog } from "./AboutDialog";
 import { BugReportDialog } from "./BugReportDialog";
+import { CrashTestButton } from "./CrashTestButton";
 import { SettingsDialog } from "./SettingsDialog";
 import { SyncStatusDialog } from "./SyncStatusDialog";
 import "./UserMenu.css";
@@ -212,6 +213,8 @@ export function UserMenu({
 						</svg>
 						Settings
 					</button>
+
+					<CrashTestButton />
 
 					<div className="user-menu-divider" />
 

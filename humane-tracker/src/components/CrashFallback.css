@@ -1,0 +1,193 @@
+.crash-fallback {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 100vh;
+	width: 100%;
+	padding: 2rem;
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.crash-fallback-content {
+	max-width: 42rem;
+	width: 100%;
+	background: white;
+	border-radius: 1rem;
+	padding: 3rem 2rem;
+	text-align: center;
+	box-shadow:
+		0 20px 25px -5px rgba(0, 0, 0, 0.1),
+		0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.crash-fallback-icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 5rem;
+	height: 5rem;
+	margin: 0 auto 1.5rem;
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	border-radius: 50%;
+	color: white;
+}
+
+.crash-fallback-title {
+	font-size: 1.875rem;
+	font-weight: 700;
+	color: #1a202c;
+	margin: 0 0 1rem;
+}
+
+.crash-fallback-message {
+	font-size: 1.125rem;
+	color: #4a5568;
+	margin: 0 0 2rem;
+	line-height: 1.6;
+}
+
+.crash-fallback-details {
+	text-align: left;
+	margin: 0 0 2rem;
+	background: #f7fafc;
+	border: 1px solid #e2e8f0;
+	border-radius: 0.5rem;
+	padding: 1rem;
+}
+
+.crash-fallback-details summary {
+	cursor: pointer;
+	font-weight: 600;
+	color: #2d3748;
+	user-select: none;
+	padding: 0.5rem;
+	margin: -0.5rem;
+}
+
+.crash-fallback-details summary:hover {
+	color: #667eea;
+}
+
+.crash-fallback-details[open] summary {
+	margin-bottom: 1rem;
+}
+
+.crash-fallback-stack {
+	margin: 0;
+	padding: 1rem;
+	background: #2d3748;
+	color: #e2e8f0;
+	border-radius: 0.375rem;
+	font-family:
+		"SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas, "Courier New",
+		monospace;
+	font-size: 0.875rem;
+	line-height: 1.5;
+	overflow-x: auto;
+	white-space: pre-wrap;
+	word-wrap: break-word;
+}
+
+.crash-fallback-actions {
+	display: flex;
+	gap: 1rem;
+	justify-content: center;
+	margin-bottom: 1.5rem;
+	flex-wrap: wrap;
+}
+
+.crash-fallback-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.75rem 1.5rem;
+	font-size: 1rem;
+	font-weight: 600;
+	border: none;
+	border-radius: 0.5rem;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	text-decoration: none;
+}
+
+.crash-fallback-btn svg {
+	flex-shrink: 0;
+}
+
+.crash-fallback-btn-primary {
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	color: white;
+}
+
+.crash-fallback-btn-primary:hover {
+	transform: translateY(-2px);
+	box-shadow:
+		0 10px 15px -3px rgba(102, 126, 234, 0.4),
+		0 4px 6px -2px rgba(102, 126, 234, 0.2);
+}
+
+.crash-fallback-btn-primary:active {
+	transform: translateY(0);
+}
+
+.crash-fallback-btn-secondary {
+	background: #f7fafc;
+	color: #2d3748;
+	border: 2px solid #e2e8f0;
+}
+
+.crash-fallback-btn-secondary:hover {
+	background: #edf2f7;
+	border-color: #cbd5e0;
+	transform: translateY(-2px);
+	box-shadow:
+		0 4px 6px -1px rgba(0, 0, 0, 0.1),
+		0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.crash-fallback-btn-secondary:active {
+	transform: translateY(0);
+}
+
+.crash-fallback-build {
+	font-size: 0.875rem;
+	color: #718096;
+	margin: 0;
+}
+
+.crash-fallback-build a {
+	color: #667eea;
+	text-decoration: none;
+	font-weight: 600;
+}
+
+.crash-fallback-build a:hover {
+	text-decoration: underline;
+}
+
+@media (max-width: 640px) {
+	.crash-fallback {
+		padding: 1rem;
+	}
+
+	.crash-fallback-content {
+		padding: 2rem 1.5rem;
+	}
+
+	.crash-fallback-title {
+		font-size: 1.5rem;
+	}
+
+	.crash-fallback-message {
+		font-size: 1rem;
+	}
+
+	.crash-fallback-actions {
+		flex-direction: column;
+	}
+
+	.crash-fallback-btn {
+		width: 100%;
+		justify-content: center;
+	}
+}

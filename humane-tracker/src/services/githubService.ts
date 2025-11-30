@@ -211,6 +211,58 @@ function dataUrlToBlob(dataUrl: string): Blob {
 }
 
 /**
+ * Build a crash report body for unhandled errors
+ */
+export function buildCrashReportBody(error: Error): string {
+	const buildInfo = getBuildInfo();
+	const deviceInfo = getDeviceInfo();
+
+	const parts: string[] = [];
+
+	parts.push("## Error");
+	parts.push(`**Message:** ${error.message}`);
+	parts.push("");
+
+	parts.push("## Build Info");
+	if (buildInfo.sha && buildInfo.sha !== "development") {
+		parts.push(
+			`**Version:** [${buildInfo.sha.slice(0, 7)}](${buildInfo.commitUrl}) on ${buildInfo.branch}`,
+		);
+	} else {
+		parts.push("**Version:** development");
+	}
+	parts.push(`**Built:** ${buildInfo.timestamp}`);
+	parts.push("");
+
+	parts.push("## Stack Trace");
+	parts.push("```");
+	parts.push(error.stack || "No stack trace available");
+	parts.push("```");
+	parts.push("");
+
+	parts.push("## Environment");
+	parts.push(deviceInfo);
+
+	return parts.join("\n");
+}
+
+/**
+ * Generate a GitHub issue URL for a crash report
+ */
+export function generateCrashReportUrl(error: Error): string {
+	const links = getGitHubLinks();
+	const body = buildCrashReportBody(error);
+
+	const params = new URLSearchParams({
+		title: `Crash: ${error.message.slice(0, 80)}`,
+		body,
+		labels: "bug,crash,from-app",
+	});
+
+	return `${links.newIssue}?${params.toString()}`;
+}
+
+/**
  * Open the bug report in GitHub
  * Returns the issue body for clipboard backup
  */

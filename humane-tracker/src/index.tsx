@@ -1,7 +1,9 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
+import { ErrorBoundary } from "react-error-boundary";
 import "./index.css";
 import App from "./App";
+import { CrashFallback } from "./components/CrashFallback";
 import TestApp from "./TestApp";
 
 const root = ReactDOM.createRoot(
@@ -13,7 +15,9 @@ const isTestMode = window.location.search.includes("test=true");
 const AppComponent = isTestMode ? TestApp : App;
 
 root.render(
-	<React.StrictMode>
-		<AppComponent />
-	</React.StrictMode>,
+	<ErrorBoundary FallbackComponent={CrashFallback}>
+		<React.StrictMode>
+			<AppComponent />
+		</React.StrictMode>
+	</ErrorBoundary>,
 );
