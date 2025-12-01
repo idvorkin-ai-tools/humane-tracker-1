@@ -33,7 +33,22 @@ export class SyncLogService {
 			// Clean up old logs if we exceed the limit
 			await this.enforceLimit();
 		} catch (error) {
-			// Silently fail - don't break the app if logging fails
+			// Check for QuotaExceededError specifically - this needs user attention
+			if (
+				error instanceof Error &&
+				(error.name === "QuotaExceededError" || error.message.includes("quota"))
+			) {
+				console.error(
+					"CRITICAL: Storage quota exceeded while adding sync log. User action required.",
+					error,
+				);
+				// Rethrow quota errors so user can be notified
+				throw new Error(
+					"Storage quota exceeded. Please clear old data or increase storage quota.",
+				);
+			}
+
+			// Other errors: silently fail - don't break the app if logging fails
 			console.error("Failed to add sync log:", error);
 		}
 	}
@@ -76,20 +91,16 @@ export class SyncLogService {
 	 * Enforce the maximum log limit by deleting oldest entries
 	 */
 	private async enforceLimit(): Promise<void> {
-		try {
-			const count = await this.syncLogsTable.count();
-			if (count > MAX_LOGS) {
-				const toDelete = count - MAX_LOGS;
-				// Get oldest logs to delete
-				const oldestLogs = await this.syncLogsTable
-					.orderBy("timestamp")
-					.limit(toDelete)
-					.toArray();
-				// Delete them
-				await this.syncLogsTable.bulkDelete(oldestLogs.map((log) => log.id));
-			}
-		} catch (error) {
-			console.error("Failed to enforce log limit:", error);
+		const count = await this.syncLogsTable.count();
+		if (count > MAX_LOGS) {
+			const toDelete = count - MAX_LOGS;
+			// Get oldest logs to delete
+			const oldestLogs = await this.syncLogsTable
+				.orderBy("timestamp")
+				.limit(toDelete)
+				.toArray();
+			// Delete them
+			await this.syncLogsTable.bulkDelete(oldestLogs.map((log) => log.id));
 		}
 	}
 
