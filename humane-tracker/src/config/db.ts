@@ -7,7 +7,7 @@ import {
 	toTimestamp,
 } from "../repositories/types";
 import { SyncLogService } from "../services/syncLogService";
-import type { SyncLog } from "../types/syncLog";
+import { syncLogDB } from "./syncLogDB";
 
 // Extend Dexie with cloud addon
 export class HumaneTrackerDB extends Dexie {
@@ -15,7 +15,6 @@ export class HumaneTrackerDB extends Dexie {
 	// The repository layer handles conversion between Record and domain types
 	habits!: Table<HabitRecord, string>;
 	entries!: Table<EntryRecord, string>;
-	syncLogs!: Table<SyncLog, string>;
 
 	constructor() {
 		super("HumaneTrackerDB", { addons: [dexieCloud] });
@@ -236,14 +235,25 @@ export class HumaneTrackerDB extends Dexie {
 					throw error;
 				}
 			});
+
+		// Version 6: Remove syncLogs table completely (moved to separate database)
+		// FINAL FIX: syncLogs is now in a completely separate IndexedDB database
+		// (HumaneTrackerSyncLogs) that has NO connection to Dexie Cloud whatsoever
+		this.version(6).stores({
+			habits:
+				"@id, userId, name, category, targetPerWeek, createdAt, updatedAt",
+			entries: "@id, habitId, userId, date, value, createdAt",
+			syncLogs: null, // Remove syncLogs table from this database
+		});
 	}
 }
 
 // Create database instance
 export const db = new HumaneTrackerDB();
 
-// Create sync log service with dependency injection (avoids circular dependency)
-export const syncLogService = new SyncLogService(db.syncLogs);
+// Create sync log service using the separate sync log database
+// This database is completely isolated from Dexie Cloud and will NEVER sync
+export const syncLogService = new SyncLogService(syncLogDB.syncLogs);
 
 // Configure Dexie Cloud (optional - works offline if not configured)
 const dexieCloudUrl = import.meta.env.VITE_DEXIE_CLOUD_URL;
@@ -270,6 +280,10 @@ if (
 
 	// Set up comprehensive sync monitoring and logging
 	console.log("[Dexie Cloud] Configuring sync with URL:", dexieCloudUrl);
+
+	// Track if we've already alerted the user about login issues (to avoid repeated alerts)
+	let hasAlertedAboutLogin = false;
+	let initialStateTimeout: ReturnType<typeof setTimeout> | null = null;
 
 	// Monitor sync state changes
 	db.cloud.syncState.subscribe((syncState) => {
@@ -311,7 +325,53 @@ if (
 				const message = "⚠ Offline mode";
 				console.warn(`[Dexie Cloud] ${timestamp} ${message}`);
 				syncLogService.addLog("syncState", "warning", message, logData);
+			} else if (
+				syncState.phase === "initial" &&
+				syncState.status === "not-started"
+			) {
+				// Stuck in initial state - check if user is logged in
+				const currentUser = db.cloud.currentUser.value;
+				const isLoggedIn = currentUser?.isLoggedIn ?? false;
+				const message = isLoggedIn
+					? "⚠ Sync not started - authentication may be required"
+					: "⚠ Sync not started - please log in to enable cloud sync";
+				console.warn(`[Dexie Cloud] ${timestamp} ${message}`, {
+					isLoggedIn,
+					userId: currentUser?.userId,
+				});
+				syncLogService.addLog("syncState", "warning", message, logData);
+
+				// Alert user if sync is stuck (only after a delay, giving them time to log in)
+				if (
+					typeof window !== "undefined" &&
+					!window.location.search.includes("test=true")
+				) {
+					if (!isLoggedIn && !hasAlertedAboutLogin && !initialStateTimeout) {
+						// Wait 10 seconds before alerting - gives user time to see login UI and interact
+						initialStateTimeout = setTimeout(() => {
+							// Re-check state before alerting to avoid false positives
+							const stillNotStarted =
+								db.cloud.syncState.value?.phase === "initial";
+							const stillNotLoggedIn = !db.cloud.currentUser.value?.isLoggedIn;
+							if (
+								stillNotStarted &&
+								stillNotLoggedIn &&
+								!hasAlertedAboutLogin
+							) {
+								hasAlertedAboutLogin = true;
+								alert(
+									"Cloud sync is not started.\n\nPlease log in to enable cloud synchronization.\n\nCheck the Debug Logs for more details.",
+								);
+							}
+						}, 10000); // 10 second delay
+					}
+				}
 			} else {
+				// Clear the timeout if we progress past initial state
+				if (initialStateTimeout) {
+					clearTimeout(initialStateTimeout);
+					initialStateTimeout = null;
+				}
 				// Log all other state changes
 				const message = `Sync state: ${syncState.phase} (${syncState.status})`;
 				syncLogService.addLog("syncState", "info", message, logData);
