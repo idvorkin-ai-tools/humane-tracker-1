@@ -158,7 +158,8 @@ export const habitRepository = {
 	): Promise<string> {
 		try {
 			const record = toRecord(habit);
-			const id = await db.habits.add(record);
+			// Dexie will auto-generate the id, so we cast to full type
+			const id = await db.habits.add(record as HabitRecord);
 			return id;
 		} catch (error) {
 			console.error("[HabitRepository] Failed to create habit:", {
@@ -179,10 +180,12 @@ export const habitRepository = {
 		habits: Array<Omit<Habit, "id" | "createdAt" | "updatedAt">>,
 	): Promise<string[]> {
 		const records = habits.map(toRecord);
-		const ids = await db.habits.bulkAdd(records, {
+		// Dexie will auto-generate the ids, so we cast to full type
+		const ids = await db.habits.bulkAdd(records as HabitRecord[], {
 			allKeys: true,
 		});
-		return ids;
+		// bulkAdd with allKeys returns string[] when given an array
+		return ids as string[];
 	},
 
 	async update(

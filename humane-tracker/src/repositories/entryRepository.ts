@@ -179,7 +179,8 @@ export const entryRepository = {
 				...entry,
 				createdAt: new Date(),
 			});
-			const id = await db.entries.add(record);
+			// Dexie will auto-generate the id, so we cast to full type
+			const id = await db.entries.add(record as EntryRecord);
 			return id;
 		} catch (error) {
 			console.error("[EntryRepository] Failed to add entry:", {
