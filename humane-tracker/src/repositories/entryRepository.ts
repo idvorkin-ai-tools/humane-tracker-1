@@ -4,8 +4,7 @@ import type { HabitEntry } from "../types/habit";
 import {
 	type EntryRecord,
 	normalizeDate,
-	normalizeDateString,
-	toDateString,
+	toDateRange,
 	toTimestamp,
 } from "./types";
 
@@ -34,7 +33,7 @@ function toRecord(
 	return {
 		habitId: entry.habitId,
 		userId: entry.userId,
-		date: toDateString(entry.date),
+		date: toTimestamp(entry.date),
 		value: entry.value,
 		notes: entry.notes,
 		createdAt: toTimestamp(entry.createdAt ?? new Date()),
@@ -113,15 +112,15 @@ export const entryRepository = {
 		endDate: Date,
 	): Promise<HabitEntry[]> {
 		try {
-			const startStr = toDateString(startDate);
-			const endStr = toDateString(endDate);
+			const { rangeStart, rangeEnd } = toDateRange(startDate, endDate);
 
 			const records = await db.entries
 				.where("userId")
 				.equals(userId)
 				.and((record) => {
-					const dateStr = normalizeDateString(record.date as string | Date);
-					return dateStr >= startStr && dateStr <= endStr;
+					// Normalize to Date object (handles both legacy YYYY-MM-DD and new timestamps)
+					const entryDate = normalizeDate(record.date as string | Date);
+					return entryDate >= rangeStart && entryDate <= rangeEnd;
 				})
 				.toArray();
 
@@ -143,15 +142,15 @@ export const entryRepository = {
 		endDate: Date,
 	): Promise<HabitEntry[]> {
 		try {
-			const startStr = toDateString(startDate);
-			const endStr = toDateString(endDate);
+			const { rangeStart, rangeEnd } = toDateRange(startDate, endDate);
 
 			const records = await db.entries
 				.where("habitId")
 				.equals(habitId)
 				.and((record) => {
-					const dateStr = normalizeDateString(record.date as string | Date);
-					return dateStr >= startStr && dateStr <= endStr;
+					// Normalize to Date object (handles both legacy YYYY-MM-DD and new timestamps)
+					const entryDate = normalizeDate(record.date as string | Date);
+					return entryDate >= rangeStart && entryDate <= rangeEnd;
 				})
 				.toArray();
 
@@ -247,16 +246,16 @@ export const entryRepository = {
 		endDate: Date,
 		callback: (entries: HabitEntry[]) => void,
 	): () => void {
-		const startStr = toDateString(startDate);
-		const endStr = toDateString(endDate);
+		const { rangeStart, rangeEnd } = toDateRange(startDate, endDate);
 
 		const observable = liveQuery(() =>
 			db.entries
 				.where("userId")
 				.equals(userId)
 				.and((record) => {
-					const dateStr = normalizeDateString(record.date as string | Date);
-					return dateStr >= startStr && dateStr <= endStr;
+					// Normalize to Date object (handles both legacy YYYY-MM-DD and new timestamps)
+					const entryDate = normalizeDate(record.date as string | Date);
+					return entryDate >= rangeStart && entryDate <= rangeEnd;
 				})
 				.toArray(),
 		);
@@ -268,10 +267,20 @@ export const entryRepository = {
 					"[EntryRepository] Error in entries subscription:",
 					error,
 				);
-				console.error(
-					"[EntryRepository] Failed to load entry updates. Please refresh the page.",
-				);
-				// Return empty array so UI doesn't crash
+
+				// Show user-facing error notification
+				const errorMsg = error instanceof Error ? error.message : String(error);
+				if (typeof window !== "undefined") {
+					console.error(
+						`[EntryRepository] CRITICAL: Failed to load entry updates: ${errorMsg}. User has been notified.`,
+					);
+					// Use alert as a temporary solution - ideally this would use a toast/notification system
+					alert(
+						`Failed to load habit entries: ${errorMsg}\n\nPlease refresh the page. If the problem persists, contact support.`,
+					);
+				}
+
+				// Return empty array as fallback after notifying user
 				callback([]);
 			},
 		});
@@ -294,10 +303,20 @@ export const entryRepository = {
 					"[EntryRepository] Error in entries subscription:",
 					error,
 				);
-				console.error(
-					"[EntryRepository] Failed to load entry updates. Please refresh the page.",
-				);
-				// Return empty array so UI doesn't crash
+
+				// Show user-facing error notification
+				const errorMsg = error instanceof Error ? error.message : String(error);
+				if (typeof window !== "undefined") {
+					console.error(
+						`[EntryRepository] CRITICAL: Failed to load entry updates: ${errorMsg}. User has been notified.`,
+					);
+					// Use alert as a temporary solution - ideally this would use a toast/notification system
+					alert(
+						`Failed to load habit entries: ${errorMsg}\n\nPlease refresh the page. If the problem persists, contact support.`,
+					);
+				}
+
+				// Return empty array as fallback after notifying user
 				callback([]);
 			},
 		});

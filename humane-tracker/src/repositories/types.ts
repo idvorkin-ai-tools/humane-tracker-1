@@ -19,15 +19,15 @@ export interface EntryRecord {
 	id: string;
 	habitId: string;
 	userId: string;
-	date: string; // ISO string (date portion only: YYYY-MM-DD)
+	date: string; // ISO timestamp (full date+time)
 	value: number;
 	notes?: string;
 	createdAt: string; // ISO string
 }
 
 /**
- * Convert a Date to an ISO date string (YYYY-MM-DD) for storage.
- * Uses local timezone - the date you see is the date stored.
+ * Convert a Date to an ISO date string (YYYY-MM-DD) in local timezone.
+ * Used for comparisons and display, NOT for storage.
  */
 export function toDateString(date: Date): string {
 	if (!(date instanceof Date)) {
@@ -152,8 +152,23 @@ export function normalizeDate(value: Date | string): Date {
 }
 
 /**
- * Normalize a date-only value from the database to YYYY-MM-DD string.
- * Handles both Date objects (legacy) and strings (new format).
+ * Create start-of-day and end-of-day Date boundaries for a date range.
+ * Useful for querying entries within a specific date range.
+ */
+export function toDateRange(
+	startDate: Date,
+	endDate: Date,
+): { rangeStart: Date; rangeEnd: Date } {
+	const rangeStart = new Date(startDate);
+	rangeStart.setHours(0, 0, 0, 0);
+	const rangeEnd = new Date(endDate);
+	rangeEnd.setHours(23, 59, 59, 999);
+	return { rangeStart, rangeEnd };
+}
+
+/**
+ * Normalize a date value from the database to YYYY-MM-DD string in local timezone.
+ * Handles both Date objects, date-only strings (YYYY-MM-DD), and full ISO timestamps.
  */
 export function normalizeDateString(value: Date | string): string {
 	if (value === null || value === undefined) {
@@ -172,12 +187,12 @@ export function normalizeDateString(value: Date | string): string {
 	if (!value.trim()) {
 		throw new Error("normalizeDateString: Empty string is not a valid date");
 	}
-	// Check if it's already a date-only string
+	// Check if it's a date-only string (legacy format)
 	if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
 		// Validate using fromDateString (includes round-trip validation for Feb 30, etc.)
 		fromDateString(value); // Will throw if invalid
 		return value;
 	}
-	// Full ISO timestamp - extract date portion
+	// Full ISO timestamp - extract date portion in local timezone
 	return toDateString(fromTimestamp(value));
 }
