@@ -1,7 +1,11 @@
 import { defineConfig, devices } from '@playwright/test';
+import { existsSync } from 'fs';
 
 const PORT = process.env.E2E_PORT || '3001';
-const BASE_URL = `http://localhost:${PORT}`;
+// Detect if running in container (HTTPS) or locally (HTTP)
+const isContainer = existsSync('/.dockerenv') || process.env.container !== undefined;
+const PROTOCOL = isContainer ? 'https' : 'http';
+const BASE_URL = `${PROTOCOL}://localhost:${PORT}`;
 
 export default defineConfig({
   testDir: './tests',
@@ -14,6 +18,8 @@ export default defineConfig({
     baseURL: BASE_URL,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
+    // Ignore HTTPS certificate errors in container (self-signed cert)
+    ignoreHTTPSErrors: isContainer,
   },
 
   projects: [
@@ -28,5 +34,7 @@ export default defineConfig({
     url: BASE_URL,
     reuseExistingServer: true,
     timeout: 120 * 1000,
+    // Ignore HTTPS certificate errors when checking server readiness
+    ignoreHTTPSErrors: isContainer,
   },
 });
