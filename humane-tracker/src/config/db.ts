@@ -7,7 +7,7 @@ import {
 	toTimestamp,
 } from "../repositories/types";
 import { SyncLogService } from "../services/syncLogService";
-import type { SyncLog } from "../types/syncLog";
+import { syncLogDB } from "./syncLogDB";
 
 // Extend Dexie with cloud addon
 export class HumaneTrackerDB extends Dexie {
@@ -15,7 +15,6 @@ export class HumaneTrackerDB extends Dexie {
 	// The repository layer handles conversion between Record and domain types
 	habits!: Table<HabitRecord, string>;
 	entries!: Table<EntryRecord, string>;
-	syncLogs!: Table<SyncLog, string>;
 
 	constructor() {
 		super("HumaneTrackerDB", { addons: [dexieCloud] });
@@ -372,14 +371,26 @@ export class HumaneTrackerDB extends Dexie {
 					throw error;
 				}
 			});
+
+		// Version 7: Remove syncLogs table completely (moved to separate database)
+		// FINAL FIX: syncLogs is now in a completely separate IndexedDB database
+		// (HumaneTrackerSyncLogs) that has NO connection to Dexie Cloud whatsoever.
+		// This is the ultimate fix for issue #45 - no syncLogs data will ever sync to cloud.
+		this.version(7).stores({
+			habits:
+				"@id, userId, name, category, targetPerWeek, createdAt, updatedAt",
+			entries: "@id, habitId, userId, date, value, createdAt",
+			syncLogs: null, // Remove syncLogs table from this database
+		});
 	}
 }
 
 // Create database instance
 export const db = new HumaneTrackerDB();
 
-// Create sync log service with dependency injection (avoids circular dependency)
-export const syncLogService = new SyncLogService(db.syncLogs);
+// Create sync log service using the separate sync log database
+// This database is completely isolated from Dexie Cloud and will NEVER sync
+export const syncLogService = new SyncLogService(syncLogDB.syncLogs);
 
 // Configure Dexie Cloud (optional - works offline if not configured)
 const dexieCloudUrl = import.meta.env.VITE_DEXIE_CLOUD_URL;
