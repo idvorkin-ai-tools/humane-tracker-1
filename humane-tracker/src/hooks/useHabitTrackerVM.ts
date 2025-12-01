@@ -200,6 +200,9 @@ export function useHabitTrackerVM({
 	const useMockMode = !userId || userId === "mock-user";
 	const weekDates = useMemo(() => getTrailingWeekDates(), []);
 
+	// Debounce timer for subscription updates to avoid excessive reloads during sync
+	const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+
 	// Derived state
 	const sections = useMemo(
 		() => groupHabitsByCategory(habits, collapsedSectionsRef.current),
@@ -277,9 +280,22 @@ export function useHabitTrackerVM({
 		// Non-mock mode: set up subscriptions - liveQuery handles reactivity
 		let isInitialLoad = true;
 
-		const unsubscribeHabits = habitService.subscribeToHabits(userId, () => {
-			if (!isInitialLoad) loadHabits(true);
-		});
+		// Debounced reload to batch rapid changes during sync (300ms delay)
+		const debouncedReload = () => {
+			if (debounceTimerRef.current) {
+				clearTimeout(debounceTimerRef.current);
+			}
+			debounceTimerRef.current = setTimeout(() => {
+				if (!isInitialLoad) {
+					loadHabits(true);
+				}
+			}, 300);
+		};
+
+		const unsubscribeHabits = habitService.subscribeToHabits(
+			userId,
+			debouncedReload,
+		);
 
 		const endDate = new Date();
 		endDate.setHours(23, 59, 59, 999);
@@ -291,9 +307,7 @@ export function useHabitTrackerVM({
 			userId,
 			startDate,
 			endDate,
-			() => {
-				if (!isInitialLoad) loadHabits(true);
-			},
+			debouncedReload,
 		);
 
 		loadHabits().then(() => {
@@ -301,8 +315,13 @@ export function useHabitTrackerVM({
 		});
 
 		return () => {
+			// Clean up subscriptions
 			unsubscribeHabits();
 			unsubscribeEntries();
+			// Clear any pending debounced reload
+			if (debounceTimerRef.current) {
+				clearTimeout(debounceTimerRef.current);
+			}
 		};
 	}, [userId, useMockMode]);
 
