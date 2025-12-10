@@ -1,6 +1,11 @@
 import { test, expect } from "@playwright/test";
+import { clearIndexedDB } from "./helpers/indexeddb-helpers";
 
 test.describe("Login Button", () => {
+	test.afterEach(async ({ page }) => {
+		await clearIndexedDB(page);
+	});
+
 	test("shows login button when logged out", async ({ page }) => {
 		// Use e2e-login mode to test logged-out state
 		await page.goto("/?e2e-login=true");
