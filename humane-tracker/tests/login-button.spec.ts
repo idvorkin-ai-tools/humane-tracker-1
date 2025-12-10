@@ -51,4 +51,14 @@ test.describe("Login Button", () => {
 		// Check button has expected styles
 		await expect(loginButton).toHaveCSS("cursor", "pointer");
 	});
+
+	test("shows warning banner when not logged in", async ({ page }) => {
+		await page.goto("/?e2e-login=true");
+		await page.waitForLoadState("networkidle");
+
+		const warning = page.locator(".anonymous-warning");
+		await expect(warning).toBeVisible();
+		await expect(warning).toContainText("Your data is not being saved");
+		await expect(warning).toContainText("Sign in");
+	});
 });

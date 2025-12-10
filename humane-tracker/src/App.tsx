@@ -1,5 +1,6 @@
 import { useObservable } from "dexie-react-hooks";
 import { useEffect, useState } from "react";
+import { AnonymousWarning } from "./components/AnonymousWarning";
 import { HabitTracker } from "./components/HabitTracker";
 import { LoginButton } from "./components/LoginButton";
 import { UserMenu } from "./components/UserMenu";
@@ -86,6 +87,7 @@ function App() {
 	if (!currentUser || !currentUser.userId) {
 		return (
 			<div className="App">
+				<AnonymousWarning />
 				<HabitTracker
 					userId="anonymous"
 					userMenu={() => <LoginButton />}
