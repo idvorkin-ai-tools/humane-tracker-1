@@ -1,0 +1,52 @@
+.anonymous-warning {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	padding: 10px 16px;
+	background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+	border-bottom: 1px solid #f59e0b;
+	color: #92400e;
+	font-size: 14px;
+	font-weight: 500;
+}
+
+.anonymous-warning-icon {
+	font-size: 16px;
+}
+
+.anonymous-warning-text {
+	text-align: center;
+}
+
+.anonymous-warning-link {
+	background: none;
+	border: none;
+	color: #d97706;
+	font-weight: 600;
+	text-decoration: underline;
+	cursor: pointer;
+	padding: 0;
+	font-size: inherit;
+}
+
+.anonymous-warning-link:hover {
+	color: #b45309;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+	.anonymous-warning {
+		background: linear-gradient(135deg, #78350f 0%, #92400e 100%);
+		border-bottom-color: #b45309;
+		color: #fef3c7;
+	}
+
+	.anonymous-warning-link {
+		color: #fcd34d;
+	}
+
+	.anonymous-warning-link:hover {
+		color: #fde68a;
+	}
+}
