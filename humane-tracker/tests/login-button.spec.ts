@@ -18,12 +18,6 @@ test.describe("Login Button", () => {
 	});
 
 	test("clicking login button triggers login flow", async ({ page }) => {
-		// Capture console messages
-		const consoleMessages: string[] = [];
-		page.on("console", (msg) => {
-			consoleMessages.push(msg.text());
-		});
-
 		await page.goto("/?e2e-login=true");
 		await page.waitForLoadState("networkidle");
 
@@ -31,21 +25,12 @@ test.describe("Login Button", () => {
 		await expect(loginButton).toBeVisible();
 
 		// Click login button - should trigger db.cloud.login()
+		// In E2E mode, Dexie Cloud isn't configured so login() fails gracefully.
 		await loginButton.click();
 
-		// Small wait to allow async handler to execute
-		await page.waitForTimeout(500);
-
-		// In E2E mode, Dexie Cloud isn't configured so login() fails gracefully.
-		// Verify that we see the expected error (proves handler executed) or no error at all.
-		const hasLoginAttempt = consoleMessages.some(
-			(msg) =>
-				msg.includes("Error signing in") ||
-				msg.includes("databaseUrl") ||
-				msg.includes("Not configured"),
-		);
-		// Just verify the button was clickable and didn't crash the app
-		expect(loginButton).toBeVisible();
+		// Verify the button is still visible and app didn't crash
+		await expect(loginButton).toBeVisible();
+		await expect(loginButton).toBeEnabled();
 	});
 
 	test("login button has correct styling", async ({ page }) => {
