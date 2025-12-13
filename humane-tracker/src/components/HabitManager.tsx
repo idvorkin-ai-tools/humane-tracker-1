@@ -21,15 +21,20 @@ export const HabitManager: React.FC<HabitManagerProps> = ({
 	const [category, setCategory] = useState("Mobility");
 	const [targetPerWeek, setTargetPerWeek] = useState(3);
 	const [loading, setLoading] = useState(false);
+	const [error, setError] = useState("");
 
 	const categoryInfo = buildCategoryInfo(category);
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		const validation = validateHabitForm({ name: habitName, category });
-		if (!validation.isValid) return;
+		if (!validation.isValid) {
+			setError(validation.errors.name || validation.errors.category || "");
+			return;
+		}
 
 		setLoading(true);
+		setError("");
 		try {
 			await habitService.createHabit({
 				name: habitName.trim(),
@@ -58,6 +63,7 @@ export const HabitManager: React.FC<HabitManagerProps> = ({
 				</div>
 
 				<form onSubmit={handleSubmit}>
+					{error && <div className="error-message">{error}</div>}
 					<div className="form-group">
 						<label htmlFor="habitName">Habit Name</label>
 						<input
