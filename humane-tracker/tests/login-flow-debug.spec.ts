@@ -14,9 +14,6 @@ test.describe("Login Flow Debug", () => {
 		// Cancel the login
 		await cancelButton.click();
 
-		// Wait for app to render
-		await page.waitForTimeout(1000);
-
 		// Should see warning banner
 		const warning = page.locator(".anonymous-warning");
 		await expect(warning).toBeVisible({ timeout: 5000 });
