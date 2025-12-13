@@ -1,17 +1,9 @@
-import { db } from "../config/db";
+import { handleSignIn } from "../utils/authUtils";
 import "./LoginButton.css";
 
 export function LoginButton() {
-	const handleLogin = async () => {
-		try {
-			await db.cloud.login();
-		} catch (error) {
-			console.error("Error signing in:", error);
-		}
-	};
-
 	return (
-		<button className="login-button" onClick={handleLogin}>
+		<button className="login-button" onClick={handleSignIn}>
 			Sign In
 		</button>
 	);

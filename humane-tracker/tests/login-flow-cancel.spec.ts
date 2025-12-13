@@ -1,10 +1,10 @@
 import { test, expect } from "@playwright/test";
 
-test.describe("Login Flow Debug", () => {
+test.describe("Login Flow - Cancel Dialog", () => {
 	test("shows warning and login button after canceling Dexie login", async ({
 		page,
 	}) => {
-		// Navigate WITHOUT e2e mode
+		// Navigate WITHOUT e2e mode to trigger real Dexie Cloud login dialog
 		await page.goto("/");
 
 		// Wait for Dexie Cloud login dialog
@@ -23,11 +23,5 @@ test.describe("Login Flow Debug", () => {
 		const loginButton = page.locator("button.login-button");
 		await expect(loginButton).toBeVisible();
 		await expect(loginButton).toHaveText("Sign In");
-
-		// Take screenshot for verification
-		await page.screenshot({
-			path: "/tmp/after-cancel-fixed.png",
-			fullPage: true,
-		});
 	});
 });

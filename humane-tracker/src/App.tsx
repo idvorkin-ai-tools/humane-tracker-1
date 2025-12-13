@@ -6,6 +6,7 @@ import { LoginButton } from "./components/LoginButton";
 import { UserMenu } from "./components/UserMenu";
 import { VersionNotification } from "./components/VersionNotification";
 import { db } from "./config/db";
+import { handleSignIn } from "./utils/authUtils";
 import "./App.css";
 
 const DEXIE_CLOUD_URL = import.meta.env.VITE_DEXIE_CLOUD_URL;
@@ -89,14 +90,6 @@ function App() {
 		currentUser?.userId && currentUser.userId !== "unauthorized";
 
 	if (!isLoggedIn) {
-		const handleSignIn = async () => {
-			try {
-				await db.cloud.login();
-			} catch (error) {
-				console.error("Error signing in:", error);
-			}
-		};
-
 		return (
 			<div className="App">
 				<AnonymousWarning onSignIn={handleSignIn} />
