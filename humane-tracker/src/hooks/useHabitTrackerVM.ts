@@ -2,7 +2,7 @@ import { addDays, format, isSameDay, isToday, isYesterday } from "date-fns";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DEFAULT_HABITS } from "../data/defaultHabits";
 import { toDateString } from "../repositories";
-import { HabitService } from "../services/habitService";
+import { habitService } from "../services/habitService";
 import type {
 	CategorySection,
 	HabitStatus,
@@ -11,8 +11,6 @@ import type {
 } from "../types/habit";
 import { buildCategoryInfo, extractCategories } from "../utils/categoryUtils";
 import { getTrailingWeekDateRange } from "../utils/dateUtils";
-
-const habitService = new HabitService();
 
 // ============================================================================
 // Pure helper functions (easily testable)
