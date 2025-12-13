@@ -84,12 +84,12 @@ function App() {
 		);
 	}
 
-	// Cloud mode - not logged in, show app with login button
+	// Cloud mode - check if logged out
 	// Dexie Cloud sets userId to "unauthorized" when user cancels login
-	const isLoggedIn =
-		currentUser?.userId && currentUser.userId !== "unauthorized";
+	const isLoggedOut =
+		!currentUser?.userId || currentUser.userId === "unauthorized";
 
-	if (!isLoggedIn) {
+	if (isLoggedOut) {
 		return (
 			<div className="App">
 				<AnonymousWarning onSignIn={handleSignIn} />
@@ -103,11 +103,10 @@ function App() {
 	}
 
 	// At this point we know currentUser.userId exists and isn't "unauthorized"
-	const userId = currentUser!.userId!;
-	const displayName = currentUser!.name || currentUser!.email || "User";
-	const avatarLetter = currentUser!.name
-		? currentUser!.name[0].toUpperCase()
-		: "?";
+	const userId = currentUser.userId;
+	const displayName = currentUser.name || currentUser.email || "User";
+	const avatarLetter =
+		(currentUser.name || currentUser.email || "?")[0]?.toUpperCase() ?? "?";
 
 	return (
 		<div className="App">
