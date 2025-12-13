@@ -92,18 +92,61 @@ interface Habit {
 }
 ```
 
-### Entry Type (unchanged)
+### Entry Type (enhanced)
 
 ```typescript
+interface SetData {
+  weight?: number; // in kg
+  reps?: number;
+  duration?: number; // in seconds
+}
+
 interface HabitEntry {
   id: string;
   habitId: string; // ALWAYS points to a raw habit (never a tag)
   userId: string;
   date: Date;
-  value: number;
+  value: number; // quick count (taps) or derived from sets.length
   createdAt: Date;
+
+  // Write loose, structure later
+  notes?: string; // freeform: "28kg x 10, 32kg x 8, felt heavy"
+  sets?: SetData[]; // structured: [{weight: 28, reps: 10}, ...]
+  parsed?: boolean; // has this been LLM-processed?
 }
 ```
+
+### Write Loose, Structure Later
+
+**Core idea:** Minimize friction at entry time. Add structure when you need it for analysis.
+
+| When                | Action                | Data                                |
+| ------------------- | --------------------- | ----------------------------------- |
+| Quick entry (phone) | Tap cell              | `value: 1`                          |
+| With notes (phone)  | Type naturally        | `notes: "28x10 32x8 felt heavy"`    |
+| Later (LLM)         | Parse notes           | `sets: [{weight:28, reps:10}, ...]` |
+| Analysis            | Query structured data | Trends, PRs, volume over time       |
+
+**LLM parsing examples:**
+
+```
+Input:  "28kg x 10, 32kg x 8, 28kg x 10"
+Output: { sets: [{weight: 28, reps: 10}, {weight: 32, reps: 8}, {weight: 28, reps: 10}] }
+
+Input:  "3 sets light day"
+Output: { sets: [{}, {}, {}] }  // 3 sets, no weight data
+
+Input:  "5 min hold"
+Output: { sets: [{duration: 300}] }
+```
+
+**Benefits:**
+
+- Zero friction on phone (tap or type naturally)
+- Flexible input formats: "3x28kg", "28 x 10 x 3", "heavy day"
+- Structure extracted on-demand for analysis
+- Can re-parse as schema evolves
+- Historical data becomes queryable retroactively
 
 ### Relationship Model
 
