@@ -89,9 +89,17 @@ function App() {
 		currentUser?.userId && currentUser.userId !== "unauthorized";
 
 	if (!isLoggedIn) {
+		const handleSignIn = async () => {
+			try {
+				await db.cloud.login();
+			} catch (error) {
+				console.error("Error signing in:", error);
+			}
+		};
+
 		return (
 			<div className="App">
-				<AnonymousWarning />
+				<AnonymousWarning onSignIn={handleSignIn} />
 				<HabitTracker
 					userId="anonymous"
 					userMenu={() => <LoginButton />}

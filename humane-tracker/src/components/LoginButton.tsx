@@ -1,9 +1,13 @@
+import { db } from "../config/db";
 import "./LoginButton.css";
 
 export function LoginButton() {
-	const handleLogin = () => {
-		// TODO: Implement login functionality
-		console.log("Login clicked - not implemented yet");
+	const handleLogin = async () => {
+		try {
+			await db.cloud.login();
+		} catch (error) {
+			console.error("Error signing in:", error);
+		}
 	};
 
 	return (
