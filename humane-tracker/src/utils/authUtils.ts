@@ -32,33 +32,35 @@ export async function getLocalAnonymousDataSummary(): Promise<LocalDataSummary |
 
 /**
  * Clear all local anonymous data before signing in.
+ * @throws Error if data clearing fails - caller must handle
  */
 async function clearLocalAnonymousData(): Promise<void> {
-	try {
-		// Delete entries for anonymous user
-		const entryCount = await entryRepository.deleteByUserId("anonymous");
+	// Delete entries for anonymous user
+	const entryCount = await entryRepository.deleteByUserId("anonymous");
 
-		// Delete habits for anonymous user
-		const habitCount = await habitRepository.deleteByUserId("anonymous");
+	// Delete habits for anonymous user
+	const habitCount = await habitRepository.deleteByUserId("anonymous");
 
-		console.log(
-			`[Auth] Cleared ${habitCount} anonymous habits and ${entryCount} entries`,
-		);
-	} catch (error) {
-		console.error("Error clearing local data:", error);
-	}
+	console.log(
+		`[Auth] Cleared ${habitCount} anonymous habits and ${entryCount} entries`,
+	);
 }
 
 export type SignInChoice = "merge" | "abandon" | "cancel";
 
+export interface SignInResult {
+	success: boolean;
+	error?: string;
+}
+
 /**
  * Triggers Dexie Cloud login flow.
  * If there's local anonymous data, prompts user to choose merge vs abandon.
- * Returns the user's choice or null if no prompt was needed.
+ * Returns success/error status so caller can display feedback to user.
  */
 export async function handleSignIn(
 	onPromptNeeded?: (summary: LocalDataSummary) => Promise<SignInChoice>,
-): Promise<void> {
+): Promise<SignInResult> {
 	try {
 		const localData = await getLocalAnonymousDataSummary();
 
@@ -66,7 +68,7 @@ export async function handleSignIn(
 			const choice = await onPromptNeeded(localData);
 
 			if (choice === "cancel") {
-				return; // User cancelled sign-in
+				return { success: true }; // User cancelled sign-in intentionally
 			}
 
 			if (choice === "abandon") {
@@ -76,7 +78,11 @@ export async function handleSignIn(
 		}
 
 		await db.cloud.login();
+		return { success: true };
 	} catch (error) {
 		console.error("Error signing in:", error);
+		const message =
+			error instanceof Error ? error.message : "Unknown error occurred";
+		return { success: false, error: `Sign-in failed: ${message}` };
 	}
 }

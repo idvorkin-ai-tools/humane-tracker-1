@@ -90,10 +90,30 @@ describe("validateExportData", () => {
 		const data = {
 			version: 1,
 			exportedAt: "2024-01-01T00:00:00.000Z",
-			habits: [{ id: "h1", name: "Test" }],
-			entries: [{ id: "e1", habitId: "h1" }],
+			habits: [{ id: "h1", name: "Test", category: "test", userId: "user1" }],
+			entries: [{ id: "e1", habitId: "h1", userId: "user1" }],
 		};
 		expect(validateExportData(data)).toBe(true);
+	});
+
+	it("returns false for habit missing required fields", () => {
+		const data = {
+			version: 1,
+			exportedAt: "2024-01-01T00:00:00.000Z",
+			habits: [{ id: "h1", name: "Test" }], // missing category and userId
+			entries: [],
+		};
+		expect(validateExportData(data)).toBe(false);
+	});
+
+	it("returns false for entry missing required fields", () => {
+		const data = {
+			version: 1,
+			exportedAt: "2024-01-01T00:00:00.000Z",
+			habits: [],
+			entries: [{ id: "e1", habitId: "h1" }], // missing userId
+		};
+		expect(validateExportData(data)).toBe(false);
 	});
 
 	it("returns false for null", () => {

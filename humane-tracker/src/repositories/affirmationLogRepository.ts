@@ -1,6 +1,8 @@
 import { db } from "../config/db";
 import {
 	type AffirmationLogRecord,
+	fromDateString,
+	normalizeDate,
 	toDateString,
 	toTimestamp,
 } from "./types";
@@ -22,8 +24,8 @@ function toAffirmationLog(record: AffirmationLogRecord): AffirmationLog {
 		affirmationTitle: record.affirmationTitle,
 		logType: record.logType,
 		note: record.note,
-		date: new Date(record.date),
-		createdAt: new Date(record.createdAt),
+		date: fromDateString(record.date),
+		createdAt: normalizeDate(record.createdAt),
 	};
 }
 
@@ -43,56 +45,116 @@ export const affirmationLogRepository = {
 	async create(
 		log: Omit<AffirmationLog, "id" | "createdAt">,
 	): Promise<string> {
-		const now = new Date();
-		const id = `aff${crypto.randomUUID().replace(/-/g, "")}`;
-		const record: AffirmationLogRecord = {
-			id,
-			userId: log.userId,
-			affirmationTitle: log.affirmationTitle,
-			logType: log.logType,
-			note: log.note,
-			date: toDateString(log.date),
-			createdAt: toTimestamp(now),
-		};
-		await db.affirmationLogs.add(record);
-		return id;
+		try {
+			const now = new Date();
+			const id = `aff${crypto.randomUUID().replace(/-/g, "")}`;
+			const record: AffirmationLogRecord = {
+				id,
+				userId: log.userId,
+				affirmationTitle: log.affirmationTitle,
+				logType: log.logType,
+				note: log.note,
+				date: toDateString(log.date),
+				createdAt: toTimestamp(now),
+			};
+			await db.affirmationLogs.add(record);
+			return id;
+		} catch (error) {
+			console.error(
+				"[AffirmationLogRepository] Failed to create affirmation log:",
+				error,
+			);
+			throw new Error(
+				`Failed to create affirmation log: ${error instanceof Error ? error.message : String(error)}`,
+			);
+		}
 	},
 
 	async getAll(): Promise<AffirmationLog[]> {
-		const records = await db.affirmationLogs.toArray();
-		return records.map(toAffirmationLog);
+		try {
+			const records = await db.affirmationLogs.toArray();
+			return records.map(toAffirmationLog);
+		} catch (error) {
+			console.error(
+				"[AffirmationLogRepository] Failed to get all affirmation logs:",
+				error,
+			);
+			throw new Error(
+				`Failed to load affirmation logs: ${error instanceof Error ? error.message : String(error)}`,
+			);
+		}
 	},
 
 	async clear(): Promise<void> {
-		const count = await db.affirmationLogs.count();
-		console.warn(
-			`[AffirmationLogRepository] DESTRUCTIVE: Clearing ${count} affirmation logs. This should only happen during import replace mode.`,
-		);
-		await db.affirmationLogs.clear();
+		try {
+			const count = await db.affirmationLogs.count();
+			console.warn(
+				`[AffirmationLogRepository] DESTRUCTIVE: Clearing ${count} affirmation logs. This should only happen during import replace mode.`,
+			);
+			await db.affirmationLogs.clear();
+		} catch (error) {
+			console.error(
+				"[AffirmationLogRepository] Failed to clear affirmation logs:",
+				error,
+			);
+			throw new Error(
+				`Failed to clear affirmation logs: ${error instanceof Error ? error.message : String(error)}`,
+			);
+		}
 	},
 
 	async bulkPut(logs: AffirmationLog[]): Promise<void> {
-		const records = logs.map(toRecord);
-		await db.affirmationLogs.bulkPut(records);
+		try {
+			const records = logs.map(toRecord);
+			await db.affirmationLogs.bulkPut(records);
+		} catch (error) {
+			console.error(
+				"[AffirmationLogRepository] Failed to bulk put affirmation logs:",
+				error,
+			);
+			throw new Error(
+				`Failed to save affirmation logs: ${error instanceof Error ? error.message : String(error)}`,
+			);
+		}
 	},
 
 	async getByUserIdAndDate(
 		userId: string,
 		date: Date,
 	): Promise<AffirmationLog[]> {
-		const dateStr = toDateString(date);
-		const records = await db.affirmationLogs
-			.where(["userId", "date"])
-			.equals([userId, dateStr])
-			.toArray();
-		return records.map(toAffirmationLog);
+		try {
+			const dateStr = toDateString(date);
+			const records = await db.affirmationLogs
+				.where(["userId", "date"])
+				.equals([userId, dateStr])
+				.toArray();
+			return records.map(toAffirmationLog);
+		} catch (error) {
+			console.error(
+				"[AffirmationLogRepository] Failed to get affirmation logs by user and date:",
+				error,
+			);
+			throw new Error(
+				`Failed to load affirmation logs: ${error instanceof Error ? error.message : String(error)}`,
+			);
+		}
 	},
 
 	async getByUserId(userId: string): Promise<AffirmationLog[]> {
-		const records = await db.affirmationLogs
-			.where("userId")
-			.equals(userId)
-			.toArray();
-		return records.map(toAffirmationLog);
+		try {
+			const records = await db.affirmationLogs
+				.where("userId")
+				.equals(userId)
+				.toArray();
+			return records.map(toAffirmationLog);
+		} catch (error) {
+			console.error(
+				"[AffirmationLogRepository] Failed to get affirmation logs by user:",
+				error,
+			);
+			throw new Error(
+				`Failed to load affirmation logs: ${error instanceof Error ? error.message : String(error)}`,
+			);
+		}
 	},
 };

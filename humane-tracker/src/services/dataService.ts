@@ -86,12 +86,43 @@ export function validateExportData(data: unknown): data is ExportData {
 	if (!data || typeof data !== "object") return false;
 	const d = data as Record<string, unknown>;
 	// Support both v1 (habits/entries only) and v2 (with affirmationLogs)
-	return (
-		(d.version === 1 || d.version === 2) &&
-		typeof d.exportedAt === "string" &&
-		Array.isArray(d.habits) &&
-		Array.isArray(d.entries)
-	);
+	if (
+		(d.version !== 1 && d.version !== 2) ||
+		typeof d.exportedAt !== "string" ||
+		!Array.isArray(d.habits) ||
+		!Array.isArray(d.entries)
+	) {
+		return false;
+	}
+
+	// Validate each habit has required fields
+	for (const h of d.habits) {
+		if (!h || typeof h !== "object") return false;
+		const habit = h as Record<string, unknown>;
+		if (
+			typeof habit.id !== "string" ||
+			typeof habit.name !== "string" ||
+			typeof habit.category !== "string" ||
+			typeof habit.userId !== "string"
+		) {
+			return false;
+		}
+	}
+
+	// Validate each entry has required fields
+	for (const e of d.entries) {
+		if (!e || typeof e !== "object") return false;
+		const entry = e as Record<string, unknown>;
+		if (
+			typeof entry.id !== "string" ||
+			typeof entry.habitId !== "string" ||
+			typeof entry.userId !== "string"
+		) {
+			return false;
+		}
+	}
+
+	return true;
 }
 
 /**

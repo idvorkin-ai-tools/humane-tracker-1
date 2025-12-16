@@ -178,14 +178,24 @@ export function generateIssueUrl(data: BugReportData): string {
 	return `${links.newIssue}?${params.toString()}`;
 }
 
+// Maximum allowed data URL size (10MB) to prevent memory exhaustion
+const MAX_DATA_URL_SIZE = 10 * 1024 * 1024;
+
 /**
  * Convert base64 data URL to Blob for clipboard
- * @throws Error if dataUrl is not a valid data URL format
+ * @throws Error if dataUrl is not a valid data URL format or exceeds size limit
  */
 function dataUrlToBlob(dataUrl: string): Blob {
 	// Validate data URL format
 	if (!dataUrl || typeof dataUrl !== "string") {
 		throw new Error("Invalid data URL: must be a non-empty string");
+	}
+
+	// Size limit check to prevent memory exhaustion
+	if (dataUrl.length > MAX_DATA_URL_SIZE) {
+		throw new Error(
+			`Data URL too large: ${(dataUrl.length / 1024 / 1024).toFixed(1)}MB exceeds ${MAX_DATA_URL_SIZE / 1024 / 1024}MB limit`,
+		);
 	}
 
 	const commaIndex = dataUrl.indexOf(",");
