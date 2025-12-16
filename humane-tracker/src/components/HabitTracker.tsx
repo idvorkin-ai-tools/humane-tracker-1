@@ -200,6 +200,18 @@ export const HabitTracker: React.FC<HabitTrackerProps> = ({
 
 	return (
 		<div className="container">
+			{vm.entryError && (
+				<div className="error-banner" role="alert">
+					{vm.entryError}
+					<button
+						type="button"
+						onClick={vm.clearEntryError}
+						aria-label="Dismiss error"
+					>
+						×
+					</button>
+				</div>
+			)}
 			<div className="week-header">
 				<div className="week-title">
 					{vm.zoomedSection ? (
