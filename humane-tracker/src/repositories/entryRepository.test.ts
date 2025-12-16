@@ -2,10 +2,16 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { toEntry, toRecord } from "./entryRepository";
 import type { EntryRecord } from "./types";
 
-// Mock crypto.randomUUID for predictable ID generation tests
+// Mock crypto for predictable ID generation and Dexie compatibility
 const mockUUID = "12345678-1234-1234-1234-123456789abc";
 vi.stubGlobal("crypto", {
 	randomUUID: vi.fn(() => mockUUID),
+	getRandomValues: vi.fn((arr: Uint8Array) => {
+		for (let i = 0; i < arr.length; i++) {
+			arr[i] = Math.floor(Math.random() * 256);
+		}
+		return arr;
+	}),
 });
 
 describe("toEntry", () => {
@@ -345,5 +351,17 @@ describe("Error handling patterns", () => {
 		expect(errors[0]).toBe(testError);
 		expect(results).toHaveLength(1);
 		expect(results[0]).toEqual([]);
+	});
+});
+
+describe("entryRepository.updateValue", () => {
+	it("throws error when entry not found", async () => {
+		const { entryRepository } = await import("./entryRepository");
+		const nonExistentId = "non-existent-entry-id";
+
+		// Error is wrapped: "Failed to update entry: Entry not found: <id>"
+		await expect(
+			entryRepository.updateValue(nonExistentId, 1),
+		).rejects.toThrow(/Entry not found/);
 	});
 });

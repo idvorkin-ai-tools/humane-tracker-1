@@ -9,8 +9,11 @@ export type HabitType = "raw" | "tag";
 /**
  * Valid values for targetPerWeek: 1-7 days per week.
  * Runtime-validated via validateTargetPerWeek() in habitRepository.ts.
+ * Note: Using `number` instead of union type to avoid TypeScript friction
+ * with form inputs and state management. The validation function ensures
+ * values are always clamped to [1,7] at runtime.
  */
-export type TargetPerWeek = 1 | 2 | 3 | 4 | 5 | 6 | 7;
+export type TargetPerWeek = number;
 
 export interface HabitRecord {
 	id: string;

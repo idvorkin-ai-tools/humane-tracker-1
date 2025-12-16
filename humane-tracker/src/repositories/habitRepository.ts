@@ -1,17 +1,12 @@
 import { liveQuery } from "dexie";
 import { db } from "../config/db";
 import type { Habit } from "../types/habit";
-import {
-	type HabitRecord,
-	type TargetPerWeek,
-	normalizeDate,
-	toTimestamp,
-} from "./types";
+import { type HabitRecord, normalizeDate, toTimestamp } from "./types";
 
 // Constants for targetPerWeek validation
-const TARGET_PER_WEEK_MIN: TargetPerWeek = 1;
-const TARGET_PER_WEEK_MAX: TargetPerWeek = 7;
-const TARGET_PER_WEEK_DEFAULT: TargetPerWeek = 3;
+const TARGET_PER_WEEK_MIN = 1;
+const TARGET_PER_WEEK_MAX = 7;
+const TARGET_PER_WEEK_DEFAULT = 3;
 
 /**
  * Validate and normalize a category string.
@@ -36,11 +31,11 @@ function validateHabitName(name: string): string {
 }
 
 /**
- * Validate targetPerWeek is within bounds.
+ * Validate targetPerWeek is within bounds (1-7).
  * Returns a default value for invalid input, clamps to min-max range.
  * Logs warnings when correcting invalid input.
  */
-function validateTargetPerWeek(target: number): TargetPerWeek {
+function validateTargetPerWeek(target: number): number {
 	if (typeof target !== "number" || Number.isNaN(target)) {
 		console.warn(
 			`[HabitRepository] Invalid targetPerWeek value: ${target}. Using default value ${TARGET_PER_WEEK_DEFAULT}.`,
@@ -59,8 +54,7 @@ function validateTargetPerWeek(target: number): TargetPerWeek {
 		);
 		return TARGET_PER_WEEK_MAX;
 	}
-	// After range checks, we know target is in [1,7] - safe cast
-	return target as TargetPerWeek;
+	return target;
 }
 
 /**

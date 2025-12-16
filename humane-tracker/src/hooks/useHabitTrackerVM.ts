@@ -214,7 +214,7 @@ export interface HabitTrackerVM {
 
 	// Tag tree support
 	habitTree: FlatTreeNode[];
-	expandedTags: Set<string>;
+	expandedTags: ReadonlySet<string>;
 
 	// Computed helpers (exposed for convenience)
 	getCategorySummary: typeof getCategorySummary;

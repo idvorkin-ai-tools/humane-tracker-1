@@ -1,6 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { db } from "../config/db";
-import { affirmationLogRepository } from "./affirmationLogRepository";
+import {
+	affirmationLogRepository,
+	validateAffirmationLog,
+} from "./affirmationLogRepository";
 import { toDateString } from "./types";
 
 describe("affirmationLogRepository", () => {
@@ -124,6 +127,65 @@ describe("affirmationLogRepository", () => {
 
 			expect(logs).toHaveLength(1);
 			expect(logs[0].note).toBe("Target day note");
+		});
+	});
+
+	describe("validateAffirmationLog", () => {
+		const validLog = {
+			userId: "user-123",
+			affirmationTitle: "Do It Anyways",
+			logType: "opportunity" as const,
+			note: "Test note",
+			date: new Date(),
+		};
+
+		it("accepts valid log data", () => {
+			expect(() => validateAffirmationLog(validLog)).not.toThrow();
+		});
+
+		it("throws on empty userId", () => {
+			expect(() =>
+				validateAffirmationLog({ ...validLog, userId: "" }),
+			).toThrow("userId cannot be empty");
+		});
+
+		it("throws on whitespace-only userId", () => {
+			expect(() =>
+				validateAffirmationLog({ ...validLog, userId: "   " }),
+			).toThrow("userId cannot be empty");
+		});
+
+		it("throws on empty affirmationTitle", () => {
+			expect(() =>
+				validateAffirmationLog({ ...validLog, affirmationTitle: "" }),
+			).toThrow("affirmationTitle cannot be empty");
+		});
+
+		it("throws on whitespace-only affirmationTitle", () => {
+			expect(() =>
+				validateAffirmationLog({ ...validLog, affirmationTitle: "   " }),
+			).toThrow("affirmationTitle cannot be empty");
+		});
+
+		it("throws on invalid logType", () => {
+			expect(() =>
+				validateAffirmationLog({
+					...validLog,
+					logType: "invalid" as "opportunity",
+				}),
+			).toThrow('logType must be "opportunity" or "didit"');
+		});
+
+		it("accepts opportunity logType", () => {
+			expect(() =>
+				validateAffirmationLog({ ...validLog, logType: "opportunity" }),
+			).not.toThrow();
+		});
+
+		it("accepts didit logType", () => {
+			expect(() =>
+				validateAffirmationLog({ ...validLog, logType: "didit" }),
+			).not.toThrow();
 		});
 	});
 });

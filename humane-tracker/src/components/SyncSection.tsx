@@ -568,6 +568,7 @@ export function SyncSection({ isLocalMode }: SyncSectionProps) {
 			setTimeout(() => setDiagnosticsCopied(false), 2000);
 		} catch (err) {
 			console.error("Failed to copy diagnostics:", err);
+			alert(`Failed to copy to clipboard: ${err instanceof Error ? err.message : "Unknown error"}`);
 		}
 	};
 

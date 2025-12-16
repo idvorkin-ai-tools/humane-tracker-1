@@ -49,8 +49,9 @@ const VALID_LOG_TYPES: readonly ("opportunity" | "didit")[] = [
 /**
  * Validate affirmation log input fields.
  * @throws Error if any field is invalid
+ * Exported for testing purposes.
  */
-function validateAffirmationLog(
+export function validateAffirmationLog(
 	log: Omit<AffirmationLog, "id" | "createdAt">,
 ): void {
 	if (!log.userId || typeof log.userId !== "string" || !log.userId.trim()) {

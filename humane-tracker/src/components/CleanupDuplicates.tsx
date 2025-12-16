@@ -85,7 +85,8 @@ export const CleanupDuplicates: React.FC<CleanupDuplicatesProps> = ({
 			}, 3000);
 		} catch (error) {
 			console.error("Error during cleanup:", error);
-			setStatus("Error during cleanup. Check console for details.");
+			const message = error instanceof Error ? error.message : "Unknown error";
+			setStatus(`Cleanup failed: ${message}. Please try again.`);
 		} finally {
 			setIsProcessing(false);
 		}
