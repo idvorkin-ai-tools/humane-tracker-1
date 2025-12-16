@@ -5,6 +5,7 @@ import {
 	runImportTransaction,
 } from "../repositories";
 import type { AffirmationLog } from "../repositories/affirmationLogRepository";
+import { normalizeDate } from "../repositories/types";
 import type { Habit, HabitEntry } from "../types/habit";
 import { repairTagRelationships } from "../utils/tagUtils";
 
@@ -40,10 +41,11 @@ export async function importAllData(
 }> {
 	// Convert date strings back to Date objects for domain types
 	// The repository will convert them back to ISO strings for storage
+	// Use normalizeDate for proper validation (throws on invalid dates)
 	const rawHabits: Habit[] = data.habits.map((h) => ({
 		...h,
-		createdAt: new Date(h.createdAt),
-		updatedAt: new Date(h.updatedAt),
+		createdAt: normalizeDate(h.createdAt as unknown as string),
+		updatedAt: normalizeDate(h.updatedAt as unknown as string),
 	}));
 
 	// Repair any inconsistencies between childIds and parentIds
@@ -58,16 +60,16 @@ export async function importAllData(
 
 	const entries: HabitEntry[] = data.entries.map((e) => ({
 		...e,
-		date: new Date(e.date),
-		createdAt: new Date(e.createdAt),
+		date: normalizeDate(e.date as unknown as string),
+		createdAt: normalizeDate(e.createdAt as unknown as string),
 	}));
 
 	// Handle affirmation logs (optional for backwards compatibility with v1 exports)
 	const affirmationLogs: AffirmationLog[] = (data.affirmationLogs ?? []).map(
 		(a) => ({
 			...a,
-			date: new Date(a.date),
-			createdAt: new Date(a.createdAt),
+			date: normalizeDate(a.date as unknown as string),
+			createdAt: normalizeDate(a.createdAt as unknown as string),
 		}),
 	);
 
@@ -86,12 +88,43 @@ export function validateExportData(data: unknown): data is ExportData {
 	if (!data || typeof data !== "object") return false;
 	const d = data as Record<string, unknown>;
 	// Support both v1 (habits/entries only) and v2 (with affirmationLogs)
-	return (
-		(d.version === 1 || d.version === 2) &&
-		typeof d.exportedAt === "string" &&
-		Array.isArray(d.habits) &&
-		Array.isArray(d.entries)
-	);
+	if (
+		(d.version !== 1 && d.version !== 2) ||
+		typeof d.exportedAt !== "string" ||
+		!Array.isArray(d.habits) ||
+		!Array.isArray(d.entries)
+	) {
+		return false;
+	}
+
+	// Validate each habit has required fields
+	for (const h of d.habits) {
+		if (!h || typeof h !== "object") return false;
+		const habit = h as Record<string, unknown>;
+		if (
+			typeof habit.id !== "string" ||
+			typeof habit.name !== "string" ||
+			typeof habit.category !== "string" ||
+			typeof habit.userId !== "string"
+		) {
+			return false;
+		}
+	}
+
+	// Validate each entry has required fields
+	for (const e of d.entries) {
+		if (!e || typeof e !== "object") return false;
+		const entry = e as Record<string, unknown>;
+		if (
+			typeof entry.id !== "string" ||
+			typeof entry.habitId !== "string" ||
+			typeof entry.userId !== "string"
+		) {
+			return false;
+		}
+	}
+
+	return true;
 }
 
 /**

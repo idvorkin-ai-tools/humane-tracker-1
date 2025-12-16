@@ -1,5 +1,5 @@
 import { useRegisterSW } from "virtual:pwa-register/react";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
 	DeviceService,
 	type DeviceServiceType,
@@ -9,11 +9,22 @@ const LAST_UPDATE_CHECK_KEY = "humane-tracker-last-update-check";
 
 export function useVersionCheck(service: DeviceServiceType = DeviceService) {
 	const registrationRef = useRef<ServiceWorkerRegistration | null>(null);
+	const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+	const isCheckingRef = useRef(false);
 	const [isChecking, setIsChecking] = useState(false);
 	const [lastCheckTime, setLastCheckTime] = useState<Date | null>(() => {
 		const stored = service.getStorageItem(LAST_UPDATE_CHECK_KEY);
 		return stored ? new Date(stored) : null;
 	});
+
+	// Cleanup interval on unmount
+	useEffect(() => {
+		return () => {
+			if (intervalRef.current) {
+				clearInterval(intervalRef.current);
+			}
+		};
+	}, []);
 
 	const {
 		needRefresh: [needRefresh],
@@ -23,7 +34,11 @@ export function useVersionCheck(service: DeviceServiceType = DeviceService) {
 			registrationRef.current = registration ?? null;
 			// Check for updates periodically (every 30 minutes)
 			if (registration) {
-				setInterval(
+				// Clear any existing interval before creating new one
+				if (intervalRef.current) {
+					clearInterval(intervalRef.current);
+				}
+				intervalRef.current = setInterval(
 					() => {
 						registration.update();
 						const now = new Date();
@@ -45,8 +60,10 @@ export function useVersionCheck(service: DeviceServiceType = DeviceService) {
 	};
 
 	const checkForUpdate = useCallback(async () => {
-		if (isChecking) return;
+		// Use ref for guard to avoid stale closure issues with rapid calls
+		if (isCheckingRef.current) return;
 
+		isCheckingRef.current = true;
 		setIsChecking(true);
 		try {
 			if (registrationRef.current) {
@@ -59,9 +76,10 @@ export function useVersionCheck(service: DeviceServiceType = DeviceService) {
 		} catch (error) {
 			console.error("Failed to check for updates:", error);
 		} finally {
+			isCheckingRef.current = false;
 			setIsChecking(false);
 		}
-	}, [isChecking, service]);
+	}, [service]);
 
 	return {
 		updateAvailable: needRefresh,

@@ -3,6 +3,11 @@ import { db } from "../config/db";
 import type { Habit } from "../types/habit";
 import { type HabitRecord, normalizeDate, toTimestamp } from "./types";
 
+// Constants for targetPerWeek validation
+const TARGET_PER_WEEK_MIN = 1;
+const TARGET_PER_WEEK_MAX = 7;
+const TARGET_PER_WEEK_DEFAULT = 3;
+
 /**
  * Validate and normalize a category string.
  */
@@ -26,28 +31,28 @@ function validateHabitName(name: string): string {
 }
 
 /**
- * Validate targetPerWeek is within bounds.
- * Returns a default value of 3 for invalid input, clamps to 1-7 range.
+ * Validate targetPerWeek is within bounds (1-7).
+ * Returns a default value for invalid input, clamps to min-max range.
  * Logs warnings when correcting invalid input.
  */
 function validateTargetPerWeek(target: number): number {
 	if (typeof target !== "number" || Number.isNaN(target)) {
 		console.warn(
-			`[HabitRepository] Invalid targetPerWeek value: ${target}. Using default value 3.`,
+			`[HabitRepository] Invalid targetPerWeek value: ${target}. Using default value ${TARGET_PER_WEEK_DEFAULT}.`,
 		);
-		return 3;
+		return TARGET_PER_WEEK_DEFAULT;
 	}
-	if (target < 1) {
+	if (target < TARGET_PER_WEEK_MIN) {
 		console.warn(
-			`[HabitRepository] targetPerWeek ${target} is below minimum. Clamping to 1.`,
+			`[HabitRepository] targetPerWeek ${target} is below minimum. Clamping to ${TARGET_PER_WEEK_MIN}.`,
 		);
-		return 1;
+		return TARGET_PER_WEEK_MIN;
 	}
-	if (target > 7) {
+	if (target > TARGET_PER_WEEK_MAX) {
 		console.warn(
-			`[HabitRepository] targetPerWeek ${target} is above maximum. Clamping to 7.`,
+			`[HabitRepository] targetPerWeek ${target} is above maximum. Clamping to ${TARGET_PER_WEEK_MAX}.`,
 		);
-		return 7;
+		return TARGET_PER_WEEK_MAX;
 	}
 	return target;
 }

@@ -1,4 +1,5 @@
 import type { Habit, HabitEntry, HabitWithStatus } from "../types/habit";
+import { toDateString } from "../repositories/types";
 import { getTagEntries } from "./tagUtils";
 
 /**
@@ -158,8 +159,8 @@ export function computeTagCounts(
 		// Count unique days in the current week
 		const uniqueDays = new Set(
 			tagEntries.map((e) => {
-				const d = e.date;
-				return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+				const d = e.date instanceof Date ? e.date : new Date(e.date);
+				return toDateString(d);
 			}),
 		);
 

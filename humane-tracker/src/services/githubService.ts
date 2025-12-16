@@ -46,13 +46,34 @@ export interface BugReportData {
 }
 
 /**
+ * Get the platform string with fallbacks for deprecated navigator.platform.
+ * Uses navigator.userAgentData.platform (modern) with fallback to navigator.platform and userAgent.
+ */
+function getPlatformString(): string {
+	if (typeof navigator === "undefined") return "";
+
+	// Modern API (Chrome 90+, Edge 90+, Opera 76+)
+	// @ts-expect-error userAgentData is not yet in all TypeScript lib definitions
+	const userAgentData = navigator.userAgentData;
+	if (userAgentData?.platform) {
+		return userAgentData.platform;
+	}
+
+	// Fallback to deprecated navigator.platform
+	if (navigator.platform) {
+		return navigator.platform;
+	}
+
+	// Last resort: extract from userAgent
+	return navigator.userAgent || "";
+}
+
+/**
  * Detect if the current platform is macOS
  */
 export function isMacPlatform(): boolean {
-	return (
-		typeof navigator !== "undefined" &&
-		navigator.platform.toUpperCase().indexOf("MAC") >= 0
-	);
+	const platform = getPlatformString().toUpperCase();
+	return platform.includes("MAC") || platform.includes("IPHONE") || platform.includes("IPAD");
 }
 
 /**
@@ -93,7 +114,7 @@ export function getGitHubLinks(repoUrl: string = getRepoUrl()): GitHubLinks {
  */
 export function getDeviceInfo(): string {
 	const ua = navigator.userAgent;
-	const platform = navigator.platform || "Unknown platform";
+	const platform = getPlatformString() || "Unknown platform";
 	const language = navigator.language || "Unknown language";
 	const screenSize = `${window.screen.width}x${window.screen.height}`;
 	const viewportSize = `${window.innerWidth}x${window.innerHeight}`;
@@ -178,14 +199,24 @@ export function generateIssueUrl(data: BugReportData): string {
 	return `${links.newIssue}?${params.toString()}`;
 }
 
+// Maximum allowed data URL size (10MB) to prevent memory exhaustion
+const MAX_DATA_URL_SIZE = 10 * 1024 * 1024;
+
 /**
  * Convert base64 data URL to Blob for clipboard
- * @throws Error if dataUrl is not a valid data URL format
+ * @throws Error if dataUrl is not a valid data URL format or exceeds size limit
  */
 function dataUrlToBlob(dataUrl: string): Blob {
 	// Validate data URL format
 	if (!dataUrl || typeof dataUrl !== "string") {
 		throw new Error("Invalid data URL: must be a non-empty string");
+	}
+
+	// Size limit check to prevent memory exhaustion
+	if (dataUrl.length > MAX_DATA_URL_SIZE) {
+		throw new Error(
+			`Data URL too large: ${(dataUrl.length / 1024 / 1024).toFixed(1)}MB exceeds ${MAX_DATA_URL_SIZE / 1024 / 1024}MB limit`,
+		);
 	}
 
 	const commaIndex = dataUrl.indexOf(",");

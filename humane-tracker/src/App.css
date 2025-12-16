@@ -59,6 +59,34 @@
 	gap: var(--space-md);
 }
 
+/* Dismissible Error Banner */
+.error-banner {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--space-md);
+	padding: var(--space-sm) var(--space-md);
+	margin-bottom: var(--space-md);
+	background: var(--color-danger);
+	color: white;
+	border-radius: var(--radius-md);
+	font-size: 0.875rem;
+}
+
+.error-banner button {
+	background: transparent;
+	border: none;
+	color: white;
+	font-size: 1.25rem;
+	cursor: pointer;
+	padding: 0 var(--space-xs);
+	opacity: 0.8;
+}
+
+.error-banner button:hover {
+	opacity: 1;
+}
+
 /* Mobile Adjustments */
 @media (max-width: 640px) {
 	.App {

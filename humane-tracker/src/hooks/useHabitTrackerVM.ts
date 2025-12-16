@@ -210,10 +210,11 @@ export interface HabitTrackerVM {
 	zoomedSection: string | null;
 	allExpanded: boolean;
 	selectedDate: Date | null;
+	entryError: string | null;
 
 	// Tag tree support
 	habitTree: FlatTreeNode[];
-	expandedTags: Set<string>;
+	expandedTags: ReadonlySet<string>;
 
 	// Computed helpers (exposed for convenience)
 	getCategorySummary: typeof getCategorySummary;
@@ -229,6 +230,7 @@ export interface HabitTrackerVM {
 	zoomIn: (category: string) => void;
 	zoomOut: () => void;
 	selectDate: (date: Date | null) => void;
+	clearEntryError: () => void;
 
 	// For menu actions
 	hasNoHabits: boolean;
@@ -242,6 +244,7 @@ export function useHabitTrackerVM({
 	const [zoomedSection, setZoomedSection] = useState<string | null>(null);
 	const [allExpanded, setAllExpanded] = useState(false);
 	const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+	const [entryError, setEntryError] = useState<string | null>(null);
 	// Start with empty set - categories derived dynamically from habits
 	const collapsedSectionsRef = useRef<Set<string>>(new Set());
 	const [collapsedVersion, setCollapsedVersion] = useState(0); // trigger re-render on collapse changes
@@ -454,6 +457,7 @@ export function useHabitTrackerVM({
 			const nextValue = getNextEntryValue(currentValue, isTag);
 
 			// Just write to DB - liveQuery will notify us and trigger a refresh
+			setEntryError(null);
 			try {
 				if (existingEntry) {
 					if (nextValue === null) {
@@ -471,10 +475,17 @@ export function useHabitTrackerVM({
 				}
 			} catch (error) {
 				console.error("Error updating entry:", error);
+				const message =
+					error instanceof Error ? error.message : "Unknown error occurred";
+				setEntryError(`Failed to save entry: ${message}`);
 			}
 		},
 		[habits, userId, selectedDate],
 	);
+
+	const clearEntryError = useCallback(() => {
+		setEntryError(null);
+	}, []);
 
 	return {
 		// State
@@ -486,10 +497,11 @@ export function useHabitTrackerVM({
 		zoomedSection,
 		allExpanded,
 		selectedDate,
+		entryError,
 
 		// Tag tree support
 		habitTree,
-		expandedTags: expandedTagsRef.current,
+		expandedTags: new Set(expandedTagsRef.current) as ReadonlySet<string>,
 
 		// Computed helpers
 		getCategorySummary,
@@ -505,6 +517,7 @@ export function useHabitTrackerVM({
 		zoomIn,
 		zoomOut,
 		selectDate,
+		clearEntryError,
 
 		// Menu helpers
 		hasNoHabits: !isLoading && habits.length === 0,

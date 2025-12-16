@@ -23,6 +23,7 @@ const isCloudConfigured =
 function App() {
 	const currentUser = useObservable(() => db.cloud.currentUser, [db]);
 	const [loading, setLoading] = useState(true);
+	const [signOutError, setSignOutError] = useState<string | null>(null);
 
 	// Sign-in dialog state
 	const [signInDialogData, setSignInDialogData] = useState<{
@@ -73,6 +74,7 @@ function App() {
 	}, []);
 
 	const handleSignOut = async () => {
+		setSignOutError(null);
 		try {
 			if (isCloudConfigured) {
 				await db.cloud.logout();
@@ -83,6 +85,9 @@ function App() {
 			}
 		} catch (error) {
 			console.error("Error signing out:", error);
+			const message =
+				error instanceof Error ? error.message : "Unknown error occurred";
+			setSignOutError(`Sign-out failed: ${message}. Please try again.`);
 		}
 	};
 
@@ -105,6 +110,18 @@ function App() {
 
 		return (
 			<div className="App">
+				{signOutError && (
+					<div className="error-banner" role="alert">
+						{signOutError}
+						<button
+							type="button"
+							onClick={() => setSignOutError(null)}
+							aria-label="Dismiss error"
+						>
+							×
+						</button>
+					</div>
+				)}
 				<HabitTracker
 					userId={localUserId}
 					userMenu={(menuProps) => (
@@ -166,6 +183,18 @@ function App() {
 
 	return (
 		<div className="App">
+			{signOutError && (
+				<div className="error-banner" role="alert">
+					{signOutError}
+					<button
+						type="button"
+						onClick={() => setSignOutError(null)}
+						aria-label="Dismiss error"
+					>
+						×
+					</button>
+				</div>
+			)}
 			<HabitTracker
 				userId={userId}
 				userMenu={(menuProps) => (

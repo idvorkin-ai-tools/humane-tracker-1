@@ -1,5 +1,5 @@
 import type React from "react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useHabitService } from "../hooks/useHabitService";
 import type { Habit } from "../types/habit";
 import { buildCategoryInfo } from "../utils/categoryUtils";
@@ -44,8 +44,18 @@ export const HabitEditor: React.FC<HabitEditorProps> = ({
 	const [isDeleting, setIsDeleting] = useState(false);
 	const [isSaving, setIsSaving] = useState(false);
 	const [error, setError] = useState("");
+	const deleteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
 	const habitService = useHabitService();
+
+	// Cleanup timer on unmount
+	useEffect(() => {
+		return () => {
+			if (deleteTimerRef.current) {
+				clearTimeout(deleteTimerRef.current);
+			}
+		};
+	}, []);
 	const categoryInfo = buildCategoryInfo(category);
 
 	const handleSave = async () => {
@@ -78,7 +88,7 @@ export const HabitEditor: React.FC<HabitEditorProps> = ({
 	const handleDelete = async () => {
 		if (!isDeleting) {
 			setIsDeleting(true);
-			setTimeout(() => setIsDeleting(false), 3000); // Reset after 3 seconds
+			deleteTimerRef.current = setTimeout(() => setIsDeleting(false), 3000); // Reset after 3 seconds
 			return;
 		}
 
@@ -163,7 +173,7 @@ export const HabitEditor: React.FC<HabitEditorProps> = ({
 										name="trackingType"
 										value={type.value}
 										checked={trackingType === type.value}
-										onChange={(e) => setTrackingType(e.target.value as any)}
+										onChange={(e) => setTrackingType(e.target.value as "binary" | "sets" | "hybrid")}
 									/>
 									<div className="tracking-type-info">
 										<strong>{type.label}</strong>

@@ -1,5 +1,5 @@
 import { format, isSameDay, isToday } from "date-fns";
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useHabitTrackerVM } from "../hooks/useHabitTrackerVM";
 import type { Habit, HabitWithStatus } from "../types/habit";
 import { buildCategoryInfo } from "../utils/categoryUtils";
@@ -38,6 +38,15 @@ export const HabitTracker: React.FC<HabitTrackerProps> = ({
 	// Long-press detection refs
 	const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const longPressTriggered = useRef(false);
+
+	// Cleanup long-press timer on unmount
+	useEffect(() => {
+		return () => {
+			if (longPressTimer.current) {
+				clearTimeout(longPressTimer.current);
+			}
+		};
+	}, []);
 
 	// All business logic from the ViewModel
 	const vm = useHabitTrackerVM({ userId });
@@ -191,6 +200,18 @@ export const HabitTracker: React.FC<HabitTrackerProps> = ({
 
 	return (
 		<div className="container">
+			{vm.entryError && (
+				<div className="error-banner" role="alert">
+					{vm.entryError}
+					<button
+						type="button"
+						onClick={vm.clearEntryError}
+						aria-label="Dismiss error"
+					>
+						×
+					</button>
+				</div>
+			)}
 			<div className="week-header">
 				<div className="week-title">
 					{vm.zoomedSection ? (
