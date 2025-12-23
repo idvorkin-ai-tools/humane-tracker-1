@@ -111,11 +111,21 @@ export const HabitEditor: React.FC<HabitEditorProps> = ({
 	};
 
 	return (
-		<div className="habit-editor-overlay">
+		<div
+			className="habit-editor-overlay"
+			role="dialog"
+			aria-modal="true"
+			aria-labelledby="habit-editor-title"
+		>
 			<div className="habit-editor-modal">
 				<div className="modal-header">
-					<h2>Edit Habit</h2>
-					<button className="close-btn" onClick={onClose}>
+					<h2 id="habit-editor-title">Edit Habit</h2>
+					<button
+						type="button"
+						className="close-btn"
+						onClick={onClose}
+						aria-label="Close dialog"
+					>
 						✕
 					</button>
 				</div>
