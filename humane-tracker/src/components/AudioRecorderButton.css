@@ -1,0 +1,123 @@
+.audio-recorder-button {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 36px;
+	height: 36px;
+	padding: 0;
+	border: none;
+	border-radius: 50%;
+	background: var(--color-surface, #f5f5f5);
+	color: var(--color-text, #333);
+	cursor: pointer;
+	transition:
+		background-color 0.2s,
+		transform 0.1s;
+}
+
+.audio-recorder-button:hover:not(:disabled) {
+	background: var(--color-surface-hover, #e0e0e0);
+	transform: scale(1.05);
+}
+
+.audio-recorder-button:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+.audio-recorder-button.audio-recorder-denied {
+	background: var(--color-warning, #fff3cd);
+	color: var(--color-warning-text, #856404);
+}
+
+.audio-recorder-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.audio-recorder-unsupported {
+	font-size: 0.75rem;
+	color: var(--color-text-muted, #666);
+	padding: 4px 8px;
+}
+
+.audio-recorder-active {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 4px 8px;
+	background: var(--color-surface, #f5f5f5);
+	border-radius: 18px;
+}
+
+.audio-recorder-timer {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.audio-recorder-indicator {
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+}
+
+.audio-recorder-indicator.recording {
+	background: #e53935;
+	animation: pulse 1s ease-in-out infinite;
+}
+
+.audio-recorder-indicator.paused {
+	background: #ffa726;
+}
+
+@keyframes pulse {
+	0%,
+	100% {
+		opacity: 1;
+	}
+	50% {
+		opacity: 0.5;
+	}
+}
+
+.audio-recorder-duration {
+	font-size: 0.875rem;
+	font-variant-numeric: tabular-nums;
+	color: var(--color-text, #333);
+	min-width: 40px;
+}
+
+.audio-recorder-controls {
+	display: flex;
+	gap: 4px;
+}
+
+.audio-recorder-control {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 28px;
+	height: 28px;
+	padding: 0;
+	border: none;
+	border-radius: 50%;
+	background: transparent;
+	color: var(--color-text, #333);
+	cursor: pointer;
+	font-size: 12px;
+	transition: background-color 0.2s;
+}
+
+.audio-recorder-control:hover {
+	background: var(--color-surface-hover, #e0e0e0);
+}
+
+.audio-recorder-control.stop {
+	color: #e53935;
+}
+
+.audio-recorder-control.cancel {
+	color: var(--color-text-muted, #666);
+}

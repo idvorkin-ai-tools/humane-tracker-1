@@ -1,7 +1,9 @@
 import { useCallback, useState } from "react";
 import { DEFAULT_AFFIRMATIONS } from "../constants/affirmations";
 import { affirmationLogRepository } from "../repositories/affirmationLogRepository";
+import { audioRecordingRepository } from "../repositories/audioRecordingRepository";
 import "./AffirmationCard.css";
+import { AudioRecorderButton } from "./AudioRecorderButton";
 
 function getRandomIndex(currentIndex?: number): number {
 	if (DEFAULT_AFFIRMATIONS.length <= 1) return 0;
@@ -23,6 +25,7 @@ export function AffirmationCard({ userId }: AffirmationCardProps) {
 	const [noteMode, setNoteMode] = useState<NoteMode>(null);
 	const [noteText, setNoteText] = useState("");
 	const [saveError, setSaveError] = useState(false);
+	const [recordingSaved, setRecordingSaved] = useState(false);
 	const affirmation = DEFAULT_AFFIRMATIONS[index];
 
 	const handleRefresh = useCallback(() => {
@@ -30,7 +33,34 @@ export function AffirmationCard({ userId }: AffirmationCardProps) {
 		setNoteMode(null);
 		setNoteText("");
 		setSaveError(false);
+		setRecordingSaved(false);
 	}, []);
+
+	const handleRecordingComplete = useCallback(
+		async (blob: Blob, durationMs: number) => {
+			if (!noteMode) return;
+
+			try {
+				await audioRecordingRepository.create({
+					userId,
+					audioBlob: blob,
+					mimeType: blob.type || "audio/webm",
+					durationMs,
+					affirmationTitle: affirmation.title,
+					recordingContext: noteMode,
+					date: new Date(),
+					transcriptionStatus: "pending",
+				});
+				setRecordingSaved(true);
+				// Clear after 2 seconds
+				setTimeout(() => setRecordingSaved(false), 2000);
+			} catch (error) {
+				console.error("Failed to save audio recording:", error);
+				setSaveError(true);
+			}
+		},
+		[noteMode, userId, affirmation.title],
+	);
 
 	const handleSaveNote = useCallback(async () => {
 		if (!noteText.trim() || !noteMode) {
@@ -82,7 +112,9 @@ export function AffirmationCard({ userId }: AffirmationCardProps) {
 				</button>
 			</div>
 			<div className="affirmation-subtitle-row">
-				<span className="affirmation-card-subtitle">{affirmation.subtitle}</span>
+				<span className="affirmation-card-subtitle">
+					{affirmation.subtitle}
+				</span>
 			</div>
 
 			{noteMode === null ? (
@@ -104,40 +136,55 @@ export function AffirmationCard({ userId }: AffirmationCardProps) {
 				</div>
 			) : (
 				<div className="affirmation-note-input">
-					<textarea
-						placeholder={
-							noteMode === "opportunity"
-								? "How will you apply this today?"
-								: "How did you apply this?"
-						}
-						value={noteText}
-						onChange={(e) => {
-							setNoteText(e.target.value);
-							setSaveError(false);
-						}}
-						onKeyDown={handleKeyDown}
-						autoFocus
-					/>
-					<button
-						type="button"
-						className="affirmation-save"
-						onClick={handleSaveNote}
-					>
-						Save
-					</button>
-					<button
-						type="button"
-						className="affirmation-cancel"
-						onClick={() => {
-							setNoteMode(null);
-							setNoteText("");
-							setSaveError(false);
-						}}
-					>
-						✕
-					</button>
+					<div className="affirmation-input-row">
+						<textarea
+							placeholder={
+								noteMode === "opportunity"
+									? "How will you apply this today?"
+									: "How did you apply this?"
+							}
+							value={noteText}
+							onChange={(e) => {
+								setNoteText(e.target.value);
+								setSaveError(false);
+							}}
+							onKeyDown={handleKeyDown}
+							autoFocus
+						/>
+						<AudioRecorderButton
+							onRecordingComplete={handleRecordingComplete}
+							onError={(err) => {
+								console.error("Recording error:", err);
+								setSaveError(true);
+							}}
+						/>
+					</div>
+					<div className="affirmation-note-actions">
+						<button
+							type="button"
+							className="affirmation-save"
+							onClick={handleSaveNote}
+						>
+							Save
+						</button>
+						<button
+							type="button"
+							className="affirmation-cancel"
+							onClick={() => {
+								setNoteMode(null);
+								setNoteText("");
+								setSaveError(false);
+								setRecordingSaved(false);
+							}}
+						>
+							{"\u2715"}
+						</button>
+					</div>
 					{saveError && (
 						<span className="affirmation-error">Failed to save</span>
+					)}
+					{recordingSaved && (
+						<span className="affirmation-success">Recording saved</span>
 					)}
 				</div>
 			)}
