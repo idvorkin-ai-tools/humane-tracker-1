@@ -61,6 +61,7 @@ function setupMocks() {
 				query: vi.fn().mockResolvedValue({
 					state: "prompt",
 					addEventListener: vi.fn(),
+					removeEventListener: vi.fn(),
 				}),
 			},
 		},

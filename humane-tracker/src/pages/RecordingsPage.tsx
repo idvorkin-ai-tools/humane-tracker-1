@@ -6,6 +6,7 @@ import {
 	audioRecordingRepository,
 } from "../repositories/audioRecordingRepository";
 import { toDateString } from "../repositories/types";
+import { formatDurationMs } from "../utils/dateUtils";
 import "./RecordingsPage.css";
 
 interface RecordingsPageProps {
@@ -26,13 +27,6 @@ function formatTime(date: Date): string {
 		hour: "2-digit",
 		minute: "2-digit",
 	});
-}
-
-function formatDuration(ms: number): string {
-	const totalSeconds = Math.floor(ms / 1000);
-	const minutes = Math.floor(totalSeconds / 60);
-	const seconds = totalSeconds % 60;
-	return `${minutes}:${seconds.toString().padStart(2, "0")}`;
 }
 
 // Group recordings by date
@@ -60,6 +54,7 @@ export function RecordingsPage({ userId }: RecordingsPageProps) {
 	const [recordings, setRecordings] = useState<AudioRecording[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
+	const [deleteError, setDeleteError] = useState<string | null>(null);
 
 	const loadRecordings = useCallback(async () => {
 		try {
@@ -79,11 +74,18 @@ export function RecordingsPage({ userId }: RecordingsPageProps) {
 	}, [loadRecordings]);
 
 	const handleDelete = useCallback(async (id: string) => {
+		// Confirm deletion since audio recordings cannot be recovered
+		if (!window.confirm("Delete this recording? This cannot be undone.")) {
+			return;
+		}
+
+		setDeleteError(null);
 		try {
 			await audioRecordingRepository.delete(id);
 			setRecordings((prev) => prev.filter((r) => r.id !== id));
 		} catch (err) {
 			console.error("Failed to delete recording:", err);
+			setDeleteError("Failed to delete recording. Please try again.");
 		}
 	}, []);
 
@@ -102,6 +104,8 @@ export function RecordingsPage({ userId }: RecordingsPageProps) {
 				{loading && <div className="recordings-loading">Loading...</div>}
 
 				{error && <div className="recordings-error">{error}</div>}
+
+				{deleteError && <div className="recordings-error">{deleteError}</div>}
 
 				{!loading && !error && recordings.length === 0 && (
 					<div className="recordings-empty">
@@ -130,7 +134,7 @@ export function RecordingsPage({ userId }: RecordingsPageProps) {
 												</span>
 												<span className="recordings-item-meta">
 													{formatTime(recording.createdAt)} ·{" "}
-													{formatDuration(recording.durationMs)}
+													{formatDurationMs(recording.durationMs)}
 												</span>
 											</div>
 											<AudioPlayer

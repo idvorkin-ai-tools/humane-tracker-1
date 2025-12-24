@@ -25,7 +25,6 @@ export function AffirmationCard({ userId }: AffirmationCardProps) {
 	const [noteMode, setNoteMode] = useState<NoteMode>(null);
 	const [noteText, setNoteText] = useState("");
 	const [saveError, setSaveError] = useState(false);
-	const [recordingSaved, setRecordingSaved] = useState(false);
 	const [isRecording, setIsRecording] = useState(false);
 	const stopRecordingRef = useRef<(() => Promise<void>) | null>(null);
 	const affirmation = DEFAULT_AFFIRMATIONS[index];
@@ -35,7 +34,6 @@ export function AffirmationCard({ userId }: AffirmationCardProps) {
 		setNoteMode(null);
 		setNoteText("");
 		setSaveError(false);
-		setRecordingSaved(false);
 	}, []);
 
 	const handleRecordingComplete = useCallback(
@@ -56,7 +54,6 @@ export function AffirmationCard({ userId }: AffirmationCardProps) {
 				// Auto-close dialog after saving recording
 				setNoteMode(null);
 				setNoteText("");
-				setRecordingSaved(false);
 			} catch (error) {
 				console.error("Failed to save audio recording:", error);
 				setSaveError(true);
@@ -191,7 +188,6 @@ export function AffirmationCard({ userId }: AffirmationCardProps) {
 								setNoteMode(null);
 								setNoteText("");
 								setSaveError(false);
-								setRecordingSaved(false);
 							}}
 						>
 							{"\u2715"}
@@ -199,9 +195,6 @@ export function AffirmationCard({ userId }: AffirmationCardProps) {
 					</div>
 					{saveError && (
 						<span className="affirmation-error">Failed to save</span>
-					)}
-					{recordingSaved && (
-						<span className="affirmation-success">Recording saved</span>
 					)}
 				</div>
 			)}

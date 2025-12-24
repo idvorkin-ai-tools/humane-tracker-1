@@ -1,16 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { formatDurationSec } from "../utils/dateUtils";
 import "./AudioPlayer.css";
 
 interface AudioPlayerProps {
 	blob: Blob;
 	mimeType: string;
 	onDelete?: () => void;
-}
-
-function formatDuration(seconds: number): string {
-	const mins = Math.floor(seconds / 60);
-	const secs = Math.floor(seconds % 60);
-	return `${mins}:${secs.toString().padStart(2, "0")}`;
 }
 
 export function AudioPlayer({ blob, mimeType, onDelete }: AudioPlayerProps) {
@@ -32,6 +27,7 @@ export function AudioPlayer({ blob, mimeType, onDelete }: AudioPlayerProps) {
 	}, [blob]);
 
 	// Set up audio element event handlers
+	// Re-run when audioUrl changes because audio element is conditionally rendered
 	useEffect(() => {
 		const audio = audioRef.current;
 		if (!audio) return;
@@ -69,7 +65,7 @@ export function AudioPlayer({ blob, mimeType, onDelete }: AudioPlayerProps) {
 			audio.removeEventListener("ended", handleEnded);
 			audio.removeEventListener("error", handleError);
 		};
-	}, []);
+	}, [audioUrl]);
 
 	const handlePlayPause = useCallback(() => {
 		const audio = audioRef.current;
@@ -138,7 +134,7 @@ export function AudioPlayer({ blob, mimeType, onDelete }: AudioPlayerProps) {
 			</div>
 
 			<span className="audio-player-time">
-				{formatDuration(currentTime)} / {formatDuration(duration)}
+				{formatDurationSec(currentTime)} / {formatDurationSec(duration)}
 			</span>
 
 			{onDelete && (

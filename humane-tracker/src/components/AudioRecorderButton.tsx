@@ -1,5 +1,6 @@
 import { useCallback, useEffect } from "react";
 import { useAudioRecorder } from "../hooks/useAudioRecorder";
+import { formatDurationMs } from "../utils/dateUtils";
 import "./AudioRecorderButton.css";
 
 interface AudioRecorderButtonProps {
@@ -8,13 +9,6 @@ interface AudioRecorderButtonProps {
 	onError?: (error: string) => void;
 	disabled?: boolean;
 	stopRecordingRef?: React.MutableRefObject<(() => Promise<void>) | null>;
-}
-
-function formatDuration(ms: number): string {
-	const totalSeconds = Math.floor(ms / 1000);
-	const minutes = Math.floor(totalSeconds / 60);
-	const seconds = totalSeconds % 60;
-	return `${minutes}:${seconds.toString().padStart(2, "0")}`;
 }
 
 export function AudioRecorderButton({
@@ -80,10 +74,12 @@ export function AudioRecorderButton({
 		}
 	}, [isPaused, pauseRecording, resumeRecording]);
 
-	// Report errors to parent
-	if (error && onError) {
-		onError(error);
-	}
+	// Report errors to parent via useEffect to avoid side effects during render
+	useEffect(() => {
+		if (error && onError) {
+			onError(error);
+		}
+	}, [error, onError]);
 
 	if (!isSupported) {
 		return (
@@ -113,7 +109,7 @@ export function AudioRecorderButton({
 						className={`audio-recorder-indicator ${isPaused ? "paused" : "recording"}`}
 					/>
 					<span className="audio-recorder-duration">
-						{formatDuration(durationMs)}
+						{formatDurationMs(durationMs)}
 					</span>
 				</div>
 				<div className="audio-recorder-controls">

@@ -52,6 +52,9 @@ export function useAudioRecorder(): UseAudioRecorderResult {
 
 	// Check permission state on mount
 	useEffect(() => {
+		let permissionResult: PermissionStatus | null = null;
+		let handleChange: (() => void) | null = null;
+
 		async function checkPermission() {
 			if (!isSupported) {
 				setPermissionState("unknown");
@@ -61,15 +64,18 @@ export function useAudioRecorder(): UseAudioRecorderResult {
 			try {
 				// navigator.permissions.query may not be available in all browsers
 				if (navigator.permissions?.query) {
-					const result = await navigator.permissions.query({
+					permissionResult = await navigator.permissions.query({
 						name: "microphone" as PermissionName,
 					});
-					setPermissionState(result.state as PermissionState);
+					setPermissionState(permissionResult.state as PermissionState);
 
 					// Listen for permission changes
-					result.addEventListener("change", () => {
-						setPermissionState(result.state as PermissionState);
-					});
+					handleChange = () => {
+						if (permissionResult) {
+							setPermissionState(permissionResult.state as PermissionState);
+						}
+					};
+					permissionResult.addEventListener("change", handleChange);
 				}
 			} catch {
 				// permissions.query not supported, state remains unknown until we try
@@ -78,6 +84,13 @@ export function useAudioRecorder(): UseAudioRecorderResult {
 		}
 
 		checkPermission();
+
+		// Cleanup listener on unmount
+		return () => {
+			if (permissionResult && handleChange) {
+				permissionResult.removeEventListener("change", handleChange);
+			}
+		};
 	}, [isSupported]);
 
 	// Cleanup on unmount
