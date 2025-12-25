@@ -130,6 +130,14 @@ install-browsers:
 deploy-stage: test build
     npx surge dist humane-tracker-stage.surge.sh
 
-# Deploy to production
+# Deploy to production (Surge)
 deploy-prod: test build
     npx surge dist humane-tracker.surge.sh
+
+# Deploy to Cloudflare Pages (production)
+deploy-cf: test build
+    npx wrangler pages deploy dist --project-name humane-tracker
+
+# Deploy to Cloudflare Pages (preview/staging)
+deploy-cf-preview: test build
+    npx wrangler pages deploy dist --project-name humane-tracker --branch preview
