@@ -2,8 +2,9 @@
 
 A habit tracking application with local-first storage and optional cloud sync for tracking wellness goals across different categories.
 
-**Live App:** https://humane-tracker.surge.sh
+**Live App:** https://humane-tracker.pages.dev
 **GitHub:** https://github.com/idvorkin/humane-tracker-1
+**Deployments:** [Cloudflare Pages Dashboard](https://dash.cloudflare.com/?to=/:account/pages/view/humane-tracker)
 
 ## Features
 
@@ -111,25 +112,37 @@ just dev          # Run development server
 just build        # Build for production
 just test         # Run unit tests
 just e2e          # Run E2E tests (Playwright)
-just deploy-stage # Deploy to staging (humane-tracker-stage.surge.sh)
-just deploy-prod  # Deploy to production (humane-tracker.surge.sh)
+just deploy-stage # Deploy to staging (Surge)
+just deploy-prod  # Deploy to production (Surge)
+just deploy-cf    # Deploy to Cloudflare Pages (production)
 ```
 
 ## Deployment
 
-The app is deployed to **Surge**:
+### Cloudflare Pages (Primary)
+
+The app is deployed to **Cloudflare Pages**:
+
+- **Production:** https://humane-tracker.pages.dev
+- **Dashboard:** [Cloudflare Pages](https://dash.cloudflare.com/?to=/:account/pages/view/humane-tracker)
+
+Manual deployment:
+
+```bash
+just deploy-cf  # Deploy to Cloudflare Pages
+```
+
+### Surge (Legacy)
 
 - **Production:** https://humane-tracker.surge.sh
 - **Staging:** https://humane-tracker-stage.surge.sh
 
-To deploy:
-
 ```bash
-just deploy-stage  # Deploy to staging first
-just deploy-prod   # Deploy to production after testing
+just deploy-stage  # Deploy to staging
+just deploy-prod   # Deploy to production
 ```
 
-Both commands run tests, build the app, and deploy to Surge.
+All deploy commands run tests and build before deploying.
 
 ## Debugging Dexie Cloud Sync
 
