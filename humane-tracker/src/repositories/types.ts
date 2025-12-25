@@ -140,6 +140,14 @@ export interface AudioRecordingRecord {
 	transcriptionError?: string; // Error message if failed
 }
 
+export interface GratitudeLogRecord {
+	id: string; // "grt..." prefix
+	userId: string;
+	note: string; // What they're grateful for
+	date: string; // ISO string (date portion only: YYYY-MM-DD)
+	createdAt: string; // ISO string
+}
+
 /**
  * Convert a Date to an ISO date string (YYYY-MM-DD) for storage.
  * Uses local timezone - the date you see is the date stored.

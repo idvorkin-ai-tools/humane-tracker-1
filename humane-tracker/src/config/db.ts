@@ -4,6 +4,7 @@ import type {
 	AffirmationLogRecord,
 	AudioRecordingRecord,
 	EntryRecord,
+	GratitudeLogRecord,
 	HabitRecord,
 } from "../repositories/types";
 import {
@@ -24,6 +25,7 @@ export class HumaneTrackerDB extends Dexie {
 	affirmationLogs!: Table<AffirmationLogRecord, string>;
 	// Local-only table (no cloud sync) for audio recordings
 	audioRecordings!: Table<AudioRecordingRecord, string>;
+	gratitudeLogs!: Table<GratitudeLogRecord, string>;
 
 	constructor() {
 		super("HumaneTrackerDB", { addons: [dexieCloud] });
@@ -521,6 +523,18 @@ export class HumaneTrackerDB extends Dexie {
 				"@id, userId, [userId+date], affirmationTitle, logType, createdAt",
 			audioRecordings:
 				"id, userId, [userId+date], affirmationTitle, createdAt, transcriptionStatus",
+		});
+
+		// Version 12: Add gratitudeLogs table for gratitude journal entries
+		this.version(12).stores({
+			habits:
+				"@id, userId, name, category, targetPerWeek, createdAt, updatedAt",
+			entries: "@id, habitId, userId, date, value, createdAt",
+			affirmationLogs:
+				"@id, userId, [userId+date], affirmationTitle, logType, createdAt",
+			audioRecordings:
+				"id, userId, [userId+date], affirmationTitle, createdAt, transcriptionStatus",
+			gratitudeLogs: "@id, userId, [userId+date], createdAt",
 		});
 	}
 }
