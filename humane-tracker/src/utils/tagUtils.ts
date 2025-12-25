@@ -61,8 +61,8 @@ export function repairTagRelationships(habits: Habit[]): RepairResult {
 	// Repair each habit
 	const repairedHabits = habits.map((h) => {
 		let needsUpdate = false;
-		const newParentIds = h.parentIds ? [...h.parentIds] : [];
-		const newChildIds = h.childIds ? [...h.childIds] : [];
+		let newParentIds = h.parentIds ? [...h.parentIds] : [];
+		let newChildIds = h.childIds ? [...h.childIds] : [];
 
 		// Remove orphaned parentIds (references to non-existent habits)
 		const originalParentCount = newParentIds.length;
