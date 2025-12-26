@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { useAudioPlayback } from "../contexts/AudioPlaybackContext";
 import { formatDurationSec } from "../utils/dateUtils";
 import "./AudioPlayer.css";
 
@@ -17,12 +18,21 @@ export function AudioPlayer({
 	compact = false,
 	compactLabel,
 }: AudioPlayerProps) {
+	const playerId = useId();
 	const audioRef = useRef<HTMLAudioElement | null>(null);
 	const [isPlaying, setIsPlaying] = useState(false);
 	const [currentTime, setCurrentTime] = useState(0);
 	const [duration, setDuration] = useState(0);
 	const [error, setError] = useState<string | null>(null);
 	const [audioUrl, setAudioUrl] = useState<string | null>(null);
+
+	const { registerAudio, unregisterAudio, startPlayback } = useAudioPlayback();
+
+	// Register this audio element with the playback coordinator
+	useEffect(() => {
+		registerAudio(playerId, audioRef);
+		return () => unregisterAudio(playerId);
+	}, [playerId, registerAudio, unregisterAudio]);
 
 	// Create object URL for the blob
 	useEffect(() => {
@@ -60,11 +70,22 @@ export function AudioPlayer({
 			setIsPlaying(false);
 		};
 
+		// Sync isPlaying state when audio is paused externally (by another player)
+		const handlePause = () => {
+			setIsPlaying(false);
+		};
+
+		const handlePlay = () => {
+			setIsPlaying(true);
+		};
+
 		audio.addEventListener("timeupdate", handleTimeUpdate);
 		audio.addEventListener("durationchange", handleDurationChange);
 		audio.addEventListener("loadedmetadata", handleDurationChange);
 		audio.addEventListener("ended", handleEnded);
 		audio.addEventListener("error", handleError);
+		audio.addEventListener("pause", handlePause);
+		audio.addEventListener("play", handlePlay);
 
 		return () => {
 			audio.removeEventListener("timeupdate", handleTimeUpdate);
@@ -72,6 +93,8 @@ export function AudioPlayer({
 			audio.removeEventListener("loadedmetadata", handleDurationChange);
 			audio.removeEventListener("ended", handleEnded);
 			audio.removeEventListener("error", handleError);
+			audio.removeEventListener("pause", handlePause);
+			audio.removeEventListener("play", handlePlay);
 		};
 	}, [audioUrl]);
 
@@ -81,14 +104,14 @@ export function AudioPlayer({
 
 		if (isPlaying) {
 			audio.pause();
-			setIsPlaying(false);
 		} else {
+			// Tell the coordinator to pause all other audio before we start
+			startPlayback(playerId);
 			audio.play().catch(() => {
 				setError("Failed to play audio");
 			});
-			setIsPlaying(true);
 		}
-	}, [isPlaying]);
+	}, [isPlaying, playerId, startPlayback]);
 
 	const handleSeek = useCallback(
 		(e: React.ChangeEvent<HTMLInputElement>) => {
