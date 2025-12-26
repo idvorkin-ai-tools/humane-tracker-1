@@ -58,6 +58,13 @@ export function AboutSection() {
 					</div>
 				)}
 
+				<div className="settings-info-row">
+					<span className="settings-info-label">URL</span>
+					<span className="settings-info-value about-section-url">
+						{window.location.origin}
+					</span>
+				</div>
+
 				<a
 					href={links.repo}
 					target="_blank"
