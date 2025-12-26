@@ -18,6 +18,7 @@ import "./UserMenu.css";
 interface UserMenuProps {
 	userName: string;
 	avatarLetter: string;
+	userId: string;
 	isLocalMode?: boolean;
 	onSignOut?: () => void;
 	onSignIn?: () => void;
@@ -29,6 +30,7 @@ interface UserMenuProps {
 export function UserMenu({
 	userName,
 	avatarLetter,
+	userId,
 	isLocalMode = false,
 	onSignOut,
 	onSignIn,
@@ -173,6 +175,7 @@ export function UserMenu({
 			{showSettingsDialog && (
 				<SettingsDialog
 					isLocalMode={isLocalMode}
+					userId={userId}
 					onClose={() => setShowSettingsDialog(false)}
 					onOpenBugReport={bugReporter.open}
 					shakeEnabled={bugReporter.shakeEnabled}

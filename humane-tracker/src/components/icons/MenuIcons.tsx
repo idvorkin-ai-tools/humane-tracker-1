@@ -194,3 +194,19 @@ export const MicrophoneIcon: IconComponent = ({ size = 16 }) => (
 		<path d="M3 7v1a5 5 0 0010 0V7M8 13v2" />
 	</svg>
 );
+
+export const StorageIcon: IconComponent = ({ size = 18 }) => (
+	<svg
+		width={size}
+		height={size}
+		viewBox="0 0 18 18"
+		fill="none"
+		stroke="currentColor"
+		strokeWidth="1.5"
+	>
+		<rect x="2" y="3" width="14" height="4" rx="1" />
+		<rect x="2" y="11" width="14" height="4" rx="1" />
+		<circle cx="5" cy="5" r="1" fill="currentColor" />
+		<circle cx="5" cy="13" r="1" fill="currentColor" />
+	</svg>
+);

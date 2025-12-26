@@ -138,6 +138,7 @@ function App() {
 									<UserMenu
 										userName="Local User"
 										avatarLetter="L"
+										userId={localUserId}
 										isLocalMode={true}
 										onSignOut={handleSignOut}
 										onManageHabits={menuProps.onManageHabits}
@@ -177,6 +178,7 @@ function App() {
 									<UserMenu
 										userName="Guest"
 										avatarLetter="G"
+										userId="anonymous"
 										onSignIn={handleSignInWithPrompt}
 										onManageHabits={menuProps.onManageHabits}
 										onLoadDefaults={menuProps.onLoadDefaults}
@@ -230,11 +232,12 @@ function App() {
 								<UserMenu
 									userName={displayName}
 									avatarLetter={avatarLetter}
+									userId={userId}
 									isLocalMode={false}
 									onSignOut={handleSignOut}
 									onManageHabits={menuProps.onManageHabits}
 									onLoadDefaults={menuProps.onLoadDefaults}
-									showLoadDefaults={menuProps.showLoadDefaults}
+									showLoadDefaults={false}
 								/>
 							)}
 						/>
