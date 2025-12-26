@@ -69,6 +69,20 @@ const DEMO_GRATEFUL_NOTES = [
 	"My health and ability to exercise",
 	"A good night's sleep",
 	"Time spent with family",
+	"Finding a great parking spot when I was running late",
+	"The smell of fresh rain on pavement",
+	"A stranger who held the door open for me",
+	"Having clean water to drink",
+	"My comfortable bed after a long day",
+	"A friend who checked in on me",
+	"The taste of my favorite meal",
+	"Music that lifted my mood",
+	"A moment of quiet in a busy day",
+	"My pet greeting me when I came home",
+	"Learning something new today",
+	"A problem that turned out easier than expected",
+	"The changing colors of the sky at sunset",
+	"Having a roof over my head",
 ];
 
 /**
@@ -81,6 +95,20 @@ const DEMO_DIDIT_NOTES = [
 	"Asked clarifying questions instead of assuming",
 	"Stayed calm when things didn't go as planned",
 	"Completed the workout even though I didn't feel like it",
+	"Said no to a request that wasn't essential",
+	"Paused before reacting to criticism",
+	"Finished a task before checking my phone",
+	"Listened fully without planning my response",
+	"Let go of something I couldn't control",
+	"Started a difficult conversation I'd been avoiding",
+	"Chose the harder right over the easier wrong",
+	"Acknowledged my mistake and apologized",
+	"Took a walk instead of staying frustrated",
+	"Gave someone the benefit of the doubt",
+	"Focused on what I could do, not what I couldn't",
+	"Resisted the urge to complain",
+	"Did the boring but important task first",
+	"Stopped multitasking and gave full attention",
 ];
 
 /**
