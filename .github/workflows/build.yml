@@ -1,6 +1,9 @@
-name: Build PR
+name: Build and Test
 
 on:
+  push:
+    branches:
+      - main
   pull_request:
     branches:
       - main
@@ -38,6 +41,6 @@ jobs:
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: dist-pr-${{ github.event.pull_request.number }}
+          name: dist-${{ github.event_name == 'push' && 'main' || format('pr-{0}', github.event.pull_request.number) }}
           path: humane-tracker/dist
           retention-days: 7
