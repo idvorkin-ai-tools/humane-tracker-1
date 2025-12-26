@@ -1,7 +1,9 @@
 import type React from "react";
 import { useState } from "react";
+import { DEFAULT_AFFIRMATIONS } from "../constants/affirmations";
 import { DEFAULT_HABITS } from "../data/defaultHabits";
 import { useHabitService } from "../hooks/useHabitService";
+import { affirmationLogRepository } from "../repositories/affirmationLogRepository";
 import { entryRepository } from "../repositories/entryRepository";
 import { buildCategoryInfo, extractCategories } from "../utils/categoryUtils";
 import "./InitializeHabits.css";
@@ -53,6 +55,111 @@ async function generateDemoCompletions(
 					);
 				}
 			}
+		}
+	}
+}
+
+/**
+ * Sample notes for demo grateful logs
+ */
+const DEMO_GRATEFUL_NOTES = [
+	"My morning coffee ritual - such a simple pleasure",
+	"A productive conversation with a colleague",
+	"The sunshine coming through the window",
+	"My health and ability to exercise",
+	"A good night's sleep",
+	"Time spent with family",
+	"Finding a great parking spot when I was running late",
+	"The smell of fresh rain on pavement",
+	"A stranger who held the door open for me",
+	"Having clean water to drink",
+	"My comfortable bed after a long day",
+	"A friend who checked in on me",
+	"The taste of my favorite meal",
+	"Music that lifted my mood",
+	"A moment of quiet in a busy day",
+	"My pet greeting me when I came home",
+	"Learning something new today",
+	"A problem that turned out easier than expected",
+	"The changing colors of the sky at sunset",
+	"Having a roof over my head",
+];
+
+/**
+ * Sample notes for demo didit (affirmation practice) logs
+ */
+const DEMO_DIDIT_NOTES = [
+	"Stayed focused during the meeting despite distractions",
+	"Took a breath before responding to a frustrating email",
+	"Chose to prioritize the most important task first",
+	"Asked clarifying questions instead of assuming",
+	"Stayed calm when things didn't go as planned",
+	"Completed the workout even though I didn't feel like it",
+	"Said no to a request that wasn't essential",
+	"Paused before reacting to criticism",
+	"Finished a task before checking my phone",
+	"Listened fully without planning my response",
+	"Let go of something I couldn't control",
+	"Started a difficult conversation I'd been avoiding",
+	"Chose the harder right over the easier wrong",
+	"Acknowledged my mistake and apologized",
+	"Took a walk instead of staying frustrated",
+	"Gave someone the benefit of the doubt",
+	"Focused on what I could do, not what I couldn't",
+	"Resisted the urge to complain",
+	"Did the boring but important task first",
+	"Stopped multitasking and gave full attention",
+];
+
+/**
+ * Generate demo affirmation logs with gratefulness and affirmation practices.
+ * Creates a few entries from past days and 1-2 for today.
+ */
+async function generateDemoAffirmationLogs(userId: string): Promise<void> {
+	const today = new Date();
+	const affirmationTitles = DEFAULT_AFFIRMATIONS.map((a) => a.title);
+
+	// Demo entries: mix of dates and types
+	const demoEntries: {
+		daysAgo: number;
+		logType: "grateful" | "didit";
+		notePool: string[];
+	}[] = [
+		// A few days ago
+		{ daysAgo: 3, logType: "grateful", notePool: DEMO_GRATEFUL_NOTES },
+		{ daysAgo: 3, logType: "didit", notePool: DEMO_DIDIT_NOTES },
+		{ daysAgo: 2, logType: "grateful", notePool: DEMO_GRATEFUL_NOTES },
+		{ daysAgo: 1, logType: "didit", notePool: DEMO_DIDIT_NOTES },
+		{ daysAgo: 1, logType: "grateful", notePool: DEMO_GRATEFUL_NOTES },
+		// Today
+		{ daysAgo: 0, logType: "grateful", notePool: DEMO_GRATEFUL_NOTES },
+		{ daysAgo: 0, logType: "didit", notePool: DEMO_DIDIT_NOTES },
+	];
+
+	for (const entry of demoEntries) {
+		const date = new Date(today);
+		date.setDate(date.getDate() - entry.daysAgo);
+
+		// Pick a random affirmation and note
+		const affirmationTitle =
+			affirmationTitles[Math.floor(Math.random() * affirmationTitles.length)];
+		const note =
+			entry.notePool[Math.floor(Math.random() * entry.notePool.length)];
+
+		try {
+			await affirmationLogRepository.create({
+				userId,
+				affirmationTitle,
+				logType: entry.logType,
+				note,
+				date,
+			});
+		} catch (err) {
+			// Demo data failure is non-fatal, just log and continue
+			console.warn(
+				`[InitializeHabits] Failed to create demo affirmation log:`,
+				err,
+			);
 		}
 	}
 }
@@ -152,6 +259,13 @@ export const InitializeHabits: React.FC<InitializeHabitsProps> = ({
 				console.warn("[InitializeHabits] Demo completions failed:", err);
 			}
 
+			// Generate demo affirmation logs (non-fatal if this fails)
+			try {
+				await generateDemoAffirmationLogs(userId);
+			} catch (err) {
+				console.warn("[InitializeHabits] Demo affirmation logs failed:", err);
+			}
+
 			onComplete();
 		} catch (error) {
 			console.error("Error initializing habits:", error);
@@ -169,7 +283,10 @@ export const InitializeHabits: React.FC<InitializeHabitsProps> = ({
 				<p className="habit-count">
 					{DEFAULT_HABITS.length} habits across {categories.length} categories
 					<br />
-					<small>Includes 2 weeks of sample completion data</small>
+					<small>
+						Includes 2 weeks of sample completions, plus gratefulness &amp;
+						affirmation entries
+					</small>
 				</p>
 
 				<div className="categories-preview">
