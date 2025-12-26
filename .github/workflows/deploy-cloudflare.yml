@@ -35,13 +35,9 @@ jobs:
         working-directory: ./humane-tracker
         run: npm ci
 
-      - name: Run unit tests
+      - name: Build and test
         working-directory: ./humane-tracker
-        run: npm run build:ci && npm run test-called-from-just
-
-      - name: Build app
-        working-directory: ./humane-tracker
-        run: npm run build:ci
+        run: just test
 
       - name: Deploy to Cloudflare Pages
         id: deploy
