@@ -179,12 +179,6 @@ export function AboutSection({ isLocalMode, userId }: AboutSectionProps) {
 				<p className="about-section-tagline">
 					Track habits with a humane, local-first approach
 				</p>
-				<p
-					className="about-section-tagline"
-					style={{ color: "#ff6b6b", fontWeight: "bold" }}
-				>
-					TEST: Workflow deploy is working! Delete me after testing.
-				</p>
 
 				{/* Build row with GitHub icon */}
 				<div className="settings-info-row">
