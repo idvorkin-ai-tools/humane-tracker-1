@@ -50,31 +50,66 @@ export function AffirmationCard({ userId }: AffirmationCardProps) {
 		[userId],
 	);
 
-	// Count per affirmation for the selector
+	// Get today's audio recordings (reactive)
+	const todayRecordings = useLiveQuery(
+		() => audioRecordingRepository.getByUserIdAndDate(userId, new Date()),
+		[userId],
+	);
+
+	// Count per affirmation for the selector (includes both text logs and audio recordings)
 	const countsPerAffirmation = useMemo(() => {
-		if (!todayLogs) return new Map<string, number>();
 		const counts = new Map<string, number>();
-		for (const log of todayLogs) {
-			counts.set(
-				log.affirmationTitle,
-				(counts.get(log.affirmationTitle) || 0) + 1,
-			);
+		// Count text logs
+		if (todayLogs) {
+			for (const log of todayLogs) {
+				counts.set(
+					log.affirmationTitle,
+					(counts.get(log.affirmationTitle) || 0) + 1,
+				);
+			}
+		}
+		// Count audio recordings (filter out "grateful" context)
+		if (todayRecordings) {
+			for (const rec of todayRecordings) {
+				if (rec.recordingContext !== "grateful") {
+					counts.set(
+						rec.affirmationTitle,
+						(counts.get(rec.affirmationTitle) || 0) + 1,
+					);
+				}
+			}
 		}
 		return counts;
-	}, [todayLogs]);
+	}, [todayLogs, todayRecordings]);
 
 	const todayCounts = useMemo(() => {
-		if (!todayLogs) return { opportunity: 0, didit: 0 };
-		// Filter by current affirmation title
-		const forThisAffirmation = todayLogs.filter(
-			(l) => l.affirmationTitle === affirmation.title,
-		);
+		// Count text logs for this affirmation
+		const textLogs =
+			todayLogs?.filter((l) => l.affirmationTitle === affirmation.title) || [];
+		// Count audio recordings for this affirmation (filter out "grateful")
+		const audioRecs =
+			todayRecordings?.filter(
+				(r) =>
+					r.affirmationTitle === affirmation.title &&
+					r.recordingContext !== "grateful",
+			) || [];
+
+		const opportunityText = textLogs.filter(
+			(l) => l.logType === "opportunity",
+		).length;
+		const diditText = textLogs.filter((l) => l.logType === "didit").length;
+		const opportunityAudio = audioRecs.filter(
+			(r) => r.recordingContext === "opportunity",
+		).length;
+		const diditAudio = audioRecs.filter(
+			(r) => r.recordingContext === "didit",
+		).length;
+
 		return {
-			opportunity: forThisAffirmation.filter((l) => l.logType === "opportunity")
-				.length,
-			didit: forThisAffirmation.filter((l) => l.logType === "didit").length,
+			opportunity: opportunityText + opportunityAudio,
+			didit: diditText + diditAudio,
 		};
-	}, [todayLogs, affirmation.title]);
+	}, [todayLogs, todayRecordings, affirmation.title]);
 
 	const handleRefresh = useCallback(() => {
 		setIndex((prev) => getRandomIndex(prev));
@@ -182,18 +217,20 @@ export function AffirmationCard({ userId }: AffirmationCardProps) {
 						</button>
 					</div>
 				)}
-				<button
-					type="button"
-					className="affirmation-refresh"
-					onClick={handleRefresh}
-					aria-label="Show different affirmation"
-				>
-					↻
-				</button>
 			</div>
 
 			{showSelector && (
 				<div className="affirmation-selector">
+					<button
+						type="button"
+						className="affirmation-selector-item affirmation-selector-random"
+						onClick={() => {
+							handleRefresh();
+							setShowSelector(false);
+						}}
+					>
+						<span className="affirmation-selector-title">↻ Random</span>
+					</button>
 					{DEFAULT_AFFIRMATIONS.map((aff, i) => {
 						const count = countsPerAffirmation.get(aff.title) || 0;
 						return (
@@ -221,84 +258,113 @@ export function AffirmationCard({ userId }: AffirmationCardProps) {
 			</div>
 
 			{noteMode !== null && (
-				<div className="affirmation-note-input">
-					<div className="affirmation-input-row">
-						{inputMode === "text" ? (
-							<>
-								<textarea
-									placeholder={
-										noteMode === "opportunity"
-											? "How will you apply this today?"
-											: "How did you apply this?"
-									}
-									value={noteText}
-									onChange={(e) => {
-										setNoteText(e.target.value);
-										setSaveError(false);
-									}}
-									onKeyDown={handleKeyDown}
-									autoFocus
-								/>
-								<button
-									type="button"
-									className="affirmation-mode-toggle"
-									onClick={() => setInputMode("voice")}
-									aria-label="Switch to voice"
+				<div className="affirmation-input-container">
+					<button
+						type="button"
+						className="affirmation-input-dismiss"
+						onClick={() => {
+							if (isRecording) {
+								// Cancel recording without saving
+								stopRecordingRef.current = null;
+							}
+							setNoteMode(null);
+							setNoteText("");
+							setSaveError(false);
+						}}
+						aria-label="Cancel"
+					>
+						<svg
+							viewBox="0 0 24 24"
+							width="18"
+							height="18"
+							fill="none"
+							stroke="currentColor"
+							strokeWidth="2"
+						>
+							<path d="M18 6L6 18M6 6l12 12" />
+						</svg>
+					</button>
+
+					{inputMode === "text" ? (
+						<div className="affirmation-text-input">
+							<textarea
+								placeholder={
+									noteMode === "opportunity"
+										? "How will you apply this today?"
+										: "How did you apply this?"
+								}
+								value={noteText}
+								onChange={(e) => {
+									setNoteText(e.target.value);
+									setSaveError(false);
+								}}
+								onKeyDown={handleKeyDown}
+								autoFocus
+								rows={1}
+							/>
+							<button
+								type="button"
+								className="affirmation-send-btn"
+								onClick={handleSaveNote}
+								disabled={!noteText.trim()}
+								aria-label="Send"
+							>
+								<svg
+									viewBox="0 0 24 24"
+									width="20"
+									height="20"
+									fill="currentColor"
 								>
-									🎤
-								</button>
-							</>
+									<path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+								</svg>
+							</button>
+						</div>
+					) : (
+						<div className="affirmation-voice-input">
+							<AudioRecorderButton
+								onRecordingComplete={handleRecordingComplete}
+								onRecordingStateChange={setIsRecording}
+								stopRecordingRef={stopRecordingRef}
+								onError={(err) => {
+									console.error("Recording error:", err);
+									setSaveError(true);
+								}}
+							/>
+						</div>
+					)}
+
+					<button
+						type="button"
+						className={`affirmation-mode-switch ${isRecording ? "disabled" : ""}`}
+						onClick={() =>
+							!isRecording &&
+							setInputMode(inputMode === "text" ? "voice" : "text")
+						}
+						aria-label={
+							inputMode === "text" ? "Switch to voice" : "Switch to text"
+						}
+					>
+						{inputMode === "text" ? (
+							<svg
+								viewBox="0 0 24 24"
+								width="18"
+								height="18"
+								fill="currentColor"
+							>
+								<path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1-9c0-.55.45-1 1-1s1 .45 1 1v6c0 .55-.45 1-1 1s-1-.45-1-1V5zm6 6c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z" />
+							</svg>
 						) : (
-							<>
-								<div className="affirmation-voice-primary">
-									<AudioRecorderButton
-										onRecordingComplete={handleRecordingComplete}
-										onRecordingStateChange={setIsRecording}
-										stopRecordingRef={stopRecordingRef}
-										onError={(err) => {
-											console.error("Recording error:", err);
-											setSaveError(true);
-										}}
-									/>
-									{!isRecording && (
-										<span className="affirmation-voice-hint">
-											Tap to record
-										</span>
-									)}
-								</div>
-								{!isRecording && (
-									<button
-										type="button"
-										className="affirmation-mode-toggle"
-										onClick={() => setInputMode("text")}
-										aria-label="Switch to text"
-									>
-										⌨️
-									</button>
-								)}
-							</>
+							<svg
+								viewBox="0 0 24 24"
+								width="18"
+								height="18"
+								fill="currentColor"
+							>
+								<path d="M20 5H4c-1.1 0-1.99.9-1.99 2L2 17c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm-9 3h2v2h-2V8zm0 3h2v2h-2v-2zM8 8h2v2H8V8zm0 3h2v2H8v-2zm-1 2H5v-2h2v2zm0-3H5V8h2v2zm9 7H8v-2h8v2zm0-4h-2v-2h2v2zm0-3h-2V8h2v2zm3 3h-2v-2h2v2zm0-3h-2V8h2v2z" />
+							</svg>
 						)}
-					</div>
-					<div className="affirmation-note-actions">
-						<button
-							type="button"
-							className="affirmation-save"
-							onClick={handleSaveNote}
-						>
-							Save
-						</button>
-						<button
-							type="button"
-							className="affirmation-cancel"
-							onClick={() => {
-								setNoteMode(null);
-								setNoteText("");
-								setSaveError(false);
-							}}
-						>
-							{"\u2715"}
-						</button>
-					</div>
+					</button>
+
 					{saveError && (
 						<span className="affirmation-error">Failed to save</span>
 					)}

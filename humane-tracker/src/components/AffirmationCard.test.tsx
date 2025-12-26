@@ -51,7 +51,7 @@ describe("AffirmationCard", () => {
 		expect(
 			screen.getByPlaceholderText("How will you apply this today?"),
 		).toBeInTheDocument();
-		expect(screen.getByText("Save")).toBeInTheDocument();
+		expect(screen.getByLabelText("Send")).toBeInTheDocument();
 	});
 
 	it("shows textarea when Did It is clicked", () => {
@@ -72,7 +72,7 @@ describe("AffirmationCard", () => {
 			screen.getByPlaceholderText("How will you apply this today?"),
 		).toBeInTheDocument();
 
-		fireEvent.click(screen.getByText("✕"));
+		fireEvent.click(screen.getByLabelText("Cancel"));
 
 		expect(
 			screen.queryByPlaceholderText("How will you apply this today?"),
@@ -95,32 +95,37 @@ describe("AffirmationCard", () => {
 		).not.toBeInTheDocument();
 	});
 
-	it("changes affirmation when refresh button is clicked", () => {
+	it("changes affirmation when Random is selected from dropdown", () => {
 		const { container } = render(<AffirmationCard userId="test-user" />);
-
-		const refreshButton = screen.getByLabelText("Show different affirmation");
 
 		// Get initial title
 		const getTitle = () =>
 			container.querySelector(".affirmation-card-title")?.textContent;
 		const initialTitle = getTitle();
 
-		// Click refresh multiple times - eventually should show a different one
-		// (Since there are 4 affirmations and it never repeats, after 3 clicks we must see a change)
+		// Click title to open dropdown, then click Random multiple times
+		// (Since there are multiple affirmations and it never repeats, should eventually change)
 		let changed = false;
 		for (let i = 0; i < 4; i++) {
-			fireEvent.click(refreshButton);
+			// Open dropdown
+			const titleBtn = container.querySelector(".affirmation-title-btn");
+			fireEvent.click(titleBtn!);
+
+			// Click Random option
+			const randomBtn = screen.getByText("↻ Random");
+			fireEvent.click(randomBtn);
+
 			if (getTitle() !== initialTitle) {
 				changed = true;
 				break;
 			}
 		}
 
-		// With 4 options and no-repeat logic, should always change
+		// With multiple options and no-repeat logic, should always change
 		expect(changed).toBe(true);
 	});
 
-	it("saves note when Save is clicked", async () => {
+	it("saves note when Send is clicked", async () => {
 		const { affirmationLogRepository } = await import(
 			"../repositories/affirmationLogRepository"
 		);
@@ -132,7 +137,7 @@ describe("AffirmationCard", () => {
 			"How will you apply this today?",
 		);
 		fireEvent.change(textarea, { target: { value: "Test note" } });
-		fireEvent.click(screen.getByText("Save"));
+		fireEvent.click(screen.getByLabelText("Send"));
 
 		expect(affirmationLogRepository.create).toHaveBeenCalledWith(
 			expect.objectContaining({
@@ -164,16 +169,13 @@ describe("AffirmationCard", () => {
 		);
 	});
 
-	it("does not save empty notes", async () => {
-		const { affirmationLogRepository } = await import(
-			"../repositories/affirmationLogRepository"
-		);
-
+	it("disables Send button when text is empty", () => {
 		render(<AffirmationCard userId="test-user" />);
 
 		fireEvent.click(screen.getByText(/Opp/));
-		fireEvent.click(screen.getByText("Save"));
+		const sendBtn = screen.getByLabelText("Send");
 
-		expect(affirmationLogRepository.create).not.toHaveBeenCalled();
+		// Send button should be disabled when text is empty
+		expect(sendBtn).toBeDisabled();
 	});
 });

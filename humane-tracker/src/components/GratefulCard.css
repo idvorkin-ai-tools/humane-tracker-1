@@ -89,115 +89,140 @@
 	background: rgba(255, 255, 255, 0.9);
 }
 
-.grateful-note-input {
-	display: flex;
-	flex-direction: column;
-	gap: 8px;
-}
+/* ==========================================================================
+   Unified Input Container - Clean pill-shaped input area
+   ========================================================================== */
 
-.grateful-input-row {
-	display: flex;
-	gap: 8px;
-	align-items: center;
-	min-height: 60px;
-}
-
-.grateful-voice-primary {
+.grateful-input-container {
 	display: flex;
 	align-items: center;
-	gap: 12px;
-	flex: 1;
-	padding: 8px 12px;
+	gap: 8px;
+	padding: 8px 10px;
 	background: white;
 	border: 1px solid #81c784;
-	border-radius: var(--radius-sm);
-	min-height: 44px;
+	border-radius: 28px;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+	min-height: 52px;
 }
 
-.grateful-voice-hint {
-	font-size: 0.85rem;
-	color: #2e7d32;
-	opacity: 0.5;
-}
-
-.grateful-mode-toggle {
+.grateful-input-dismiss {
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	width: 40px;
-	height: 40px;
+	width: 32px;
+	height: 32px;
 	padding: 0;
-	font-size: 1.2rem;
-	background: rgba(255, 255, 255, 0.6);
-	border: 1px solid rgba(0, 0, 0, 0.1);
-	border-radius: var(--radius-sm);
+	background: none;
+	border: none;
+	border-radius: 50%;
+	color: #2e7d32;
+	opacity: 0.4;
 	cursor: pointer;
-	transition: background 0.15s ease;
+	transition:
+		opacity 0.15s ease,
+		background 0.15s ease;
 	flex-shrink: 0;
 }
 
-.grateful-mode-toggle:hover {
-	background: rgba(255, 255, 255, 0.9);
+.grateful-input-dismiss:hover {
+	opacity: 0.7;
+	background: rgba(0, 0, 0, 0.05);
 }
 
-.grateful-input-row textarea {
+/* Text input mode */
+.grateful-text-input {
+	display: flex;
+	align-items: center;
 	flex: 1;
-	padding: 10px 14px;
+	gap: 8px;
+	min-width: 0;
+}
+
+.grateful-text-input textarea {
+	flex: 1;
+	padding: 8px 0;
 	font-size: 0.95rem;
 	font-family: var(--font-body);
-	border: 1px solid #81c784;
-	border-radius: var(--radius-sm);
-	background: white;
-	min-height: 60px;
-	resize: vertical;
-}
-
-.grateful-input-row textarea:focus {
-	outline: none;
-	border-color: #4caf50;
-	box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
-}
-
-/* When recording is active, let it fill the space */
-.grateful-input-row.recording-active {
-	justify-content: stretch;
-}
-
-.grateful-note-actions {
-	display: flex;
-	gap: 8px;
-	align-items: center;
-}
-
-.grateful-save {
-	padding: 8px 14px;
-	font-size: 0.85rem;
-	font-family: var(--font-body);
-	font-weight: 500;
-	background: #4caf50;
-	color: white;
 	border: none;
-	border-radius: var(--radius-sm);
+	background: transparent;
+	resize: none;
+	min-height: 24px;
+	max-height: 120px;
+	line-height: 1.4;
+}
+
+.grateful-text-input textarea:focus {
+	outline: none;
+}
+
+.grateful-text-input textarea::placeholder {
+	color: #2e7d32;
+	opacity: 0.4;
+}
+
+.grateful-send-btn {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 36px;
+	height: 36px;
+	padding: 0;
+	background: #4caf50;
+	border: none;
+	border-radius: 50%;
+	color: white;
 	cursor: pointer;
-	transition: background 0.15s ease;
+	transition:
+		transform 0.15s ease,
+		opacity 0.15s ease;
+	flex-shrink: 0;
 }
 
-.grateful-save:hover {
-	background: #388e3c;
+.grateful-send-btn:hover:not(:disabled) {
+	transform: scale(1.08);
 }
 
-.grateful-cancel {
-	padding: 8px;
-	font-size: 0.9rem;
+.grateful-send-btn:disabled {
+	opacity: 0.3;
+	cursor: not-allowed;
+}
+
+/* Voice input mode - center the mic button */
+.grateful-voice-input {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex: 1;
+}
+
+/* Mode switch button */
+.grateful-mode-switch {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 32px;
+	height: 32px;
+	padding: 0;
 	background: none;
 	border: none;
+	border-radius: 50%;
 	color: #2e7d32;
-	opacity: 0.5;
+	opacity: 0.35;
 	cursor: pointer;
+	transition:
+		opacity 0.15s ease,
+		background 0.15s ease;
+	flex-shrink: 0;
 }
 
-.grateful-cancel:hover {
-	opacity: 0.8;
+.grateful-mode-switch:hover:not(.disabled) {
+	opacity: 0.6;
+	background: rgba(0, 0, 0, 0.05);
+}
+
+.grateful-mode-switch.disabled {
+	opacity: 0.15;
+	cursor: default;
 }
 
 .grateful-error {
@@ -237,36 +262,28 @@
 		background: rgba(0, 0, 0, 0.5);
 	}
 
-	.grateful-input-row textarea {
+	.grateful-input-container {
 		background: #1a2e1a;
 		border-color: #2e7d32;
+	}
+
+	.grateful-input-dismiss {
 		color: #a5d6a7;
 	}
 
-	.grateful-cancel {
+	.grateful-text-input textarea {
+		color: #a5d6a7;
+	}
+
+	.grateful-text-input textarea::placeholder {
+		color: #a5d6a7;
+	}
+
+	.grateful-mode-switch {
 		color: #a5d6a7;
 	}
 
 	.grateful-success {
 		color: #4ade80;
-	}
-
-	.grateful-voice-primary {
-		background: #1a2e1a;
-		border-color: #2e7d32;
-	}
-
-	.grateful-voice-hint {
-		color: #a5d6a7;
-	}
-
-	.grateful-mode-toggle {
-		background: rgba(0, 0, 0, 0.3);
-		border-color: rgba(255, 255, 255, 0.1);
-		color: #a5d6a7;
-	}
-
-	.grateful-mode-toggle:hover {
-		background: rgba(0, 0, 0, 0.5);
 	}
 }
