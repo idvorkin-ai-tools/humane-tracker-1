@@ -142,31 +142,19 @@
 	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 	display: flex;
 	flex-direction: column;
-	gap: 6px;
+	gap: 8px;
 }
 
-.recordings-item-row {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 12px;
-}
-
-.recordings-item-affirmation {
+.recordings-item-title {
 	font-weight: 500;
 	font-size: 0.9rem;
 	color: var(--color-charcoal, #333);
-	flex: 1;
-	white-space: nowrap;
-	overflow: hidden;
-	text-overflow: ellipsis;
 }
 
-.recordings-item-meta {
-	font-size: 0.8rem;
-	color: var(--color-text-muted, #666);
-	font-variant-numeric: tabular-nums;
-	white-space: nowrap;
+.recordings-item-players {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
 }
 
 .recordings-item-transcription {
@@ -237,7 +225,7 @@
 		background: #1f1d1a;
 	}
 
-	.recordings-item-affirmation {
+	.recordings-item-title {
 		color: var(--color-cream, #faf8f5);
 	}
 

@@ -22,13 +22,6 @@ function formatDate(date: Date): string {
 	});
 }
 
-function formatTime(date: Date): string {
-	return date.toLocaleTimeString(undefined, {
-		hour: "2-digit",
-		minute: "2-digit",
-	});
-}
-
 // Context display names and order
 const CONTEXT_ORDER = ["opportunity", "didit", "grateful"] as const;
 const CONTEXT_LABELS: Record<string, string> = {
@@ -37,11 +30,13 @@ const CONTEXT_LABELS: Record<string, string> = {
 	grateful: "Gratitudes",
 };
 
-// Group recordings by date -> context
-function groupByDateAndContext(
-	recordings: AudioRecording[],
-): Map<string, Map<string, AudioRecording[]>> {
-	const groups = new Map<string, Map<string, AudioRecording[]>>();
+// Nested grouping: date -> context -> affirmationTitle -> recordings
+type TitleGroup = Map<string, AudioRecording[]>;
+type ContextGroup = Map<string, TitleGroup>;
+type DateGroup = Map<string, ContextGroup>;
+
+function groupRecordings(recordings: AudioRecording[]): DateGroup {
+	const groups: DateGroup = new Map();
 
 	// Sort by createdAt descending (newest first)
 	const sorted = [...recordings].sort(
@@ -51,13 +46,20 @@ function groupByDateAndContext(
 	for (const recording of sorted) {
 		const dateKey = toDateString(recording.date);
 		if (!groups.has(dateKey)) {
-			groups.set(dateKey, new Map<string, AudioRecording[]>());
+			groups.set(dateKey, new Map());
 		}
-		const dateGroup = groups.get(dateKey)!;
+		const contextGroups = groups.get(dateKey)!;
+
 		const contextKey = recording.recordingContext;
-		const existing = dateGroup.get(contextKey) || [];
+		if (!contextGroups.has(contextKey)) {
+			contextGroups.set(contextKey, new Map());
+		}
+		const titleGroups = contextGroups.get(contextKey)!;
+
+		const titleKey = recording.affirmationTitle;
+		const existing = titleGroups.get(titleKey) || [];
 		existing.push(recording);
-		dateGroup.set(contextKey, existing);
+		titleGroups.set(titleKey, existing);
 	}
 
 	return groups;
@@ -102,7 +104,7 @@ export function RecordingsPage({ userId }: RecordingsPageProps) {
 		}
 	}, []);
 
-	const groupedRecordings = groupByDateAndContext(recordings);
+	const groupedRecordings = groupRecordings(recordings);
 
 	return (
 		<div className="recordings-page">
@@ -147,10 +149,10 @@ export function RecordingsPage({ userId }: RecordingsPageProps) {
 					Array.from(groupedRecordings.entries()).map(
 						([dateKey, contextGroups]) => {
 							// Get first recording from any context to get the date
-							const firstContextRecordings = Array.from(
-								contextGroups.values(),
+							const firstTitleGroup = Array.from(
+								Array.from(contextGroups.values())[0]?.values() || [],
 							)[0];
-							const dateForDisplay = firstContextRecordings?.[0]?.date;
+							const dateForDisplay = firstTitleGroup?.[0]?.date;
 							if (!dateForDisplay) return null;
 
 							return (
@@ -160,7 +162,7 @@ export function RecordingsPage({ userId }: RecordingsPageProps) {
 									</h2>
 									{CONTEXT_ORDER.filter((ctx) => contextGroups.has(ctx)).map(
 										(contextKey) => {
-											const contextRecordings = contextGroups.get(contextKey)!;
+											const titleGroups = contextGroups.get(contextKey)!;
 											return (
 												<div
 													key={contextKey}
@@ -170,32 +172,31 @@ export function RecordingsPage({ userId }: RecordingsPageProps) {
 														{CONTEXT_LABELS[contextKey] || contextKey}
 													</h3>
 													<ul className="recordings-list">
-														{contextRecordings.map((recording) => (
-															<li
-																key={recording.id}
-																className="recordings-item"
-															>
-																<div className="recordings-item-row">
-																	<span className="recordings-item-affirmation">
-																		{recording.affirmationTitle}
-																	</span>
-																	<span className="recordings-item-meta">
-																		{formatTime(recording.createdAt)} ·{" "}
-																		{formatDurationMs(recording.durationMs)}
-																	</span>
-																</div>
-																<AudioPlayer
-																	blob={recording.audioBlob}
-																	mimeType={recording.mimeType}
-																	onDelete={() => handleDelete(recording.id)}
-																/>
-																{recording.transcriptionText && (
-																	<div className="recordings-item-transcript">
-																		{recording.transcriptionText}
+														{Array.from(titleGroups.entries()).map(
+															([title, titleRecordings]) => (
+																<li key={title} className="recordings-item">
+																	<div className="recordings-item-title">
+																		{title}
 																	</div>
-																)}
-															</li>
-														))}
+																	<div className="recordings-item-players">
+																		{titleRecordings.map((recording) => (
+																			<AudioPlayer
+																				key={recording.id}
+																				blob={recording.audioBlob}
+																				mimeType={recording.mimeType}
+																				onDelete={() =>
+																					handleDelete(recording.id)
+																				}
+																				compact
+																				compactLabel={formatDurationMs(
+																					recording.durationMs,
+																				)}
+																			/>
+																		))}
+																	</div>
+																</li>
+															),
+														)}
 													</ul>
 												</div>
 											);
