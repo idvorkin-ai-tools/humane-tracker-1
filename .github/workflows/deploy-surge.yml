@@ -4,25 +4,37 @@ on:
   push:
     branches:
       - main # Deploy on push to main branch
-  pull_request:
+  pull_request_target:
     types: [opened, synchronize, reopened, closed]
     branches:
-      - main # Preview on PRs
+      - main # Preview on PRs from approved users
 
 permissions:
   contents: read
   pull-requests: write
 
+# Approved users who can trigger PR preview deployments
+env:
+  APPROVED_USERS: "idvorkin,idvorkin-ai-tools"
+
 jobs:
   build-and-deploy:
-    # Don't build on PR close - just teardown
-    if: github.event.action != 'closed'
+    # Only run for:
+    # - Push to main (always)
+    # - PR from approved users (not on close)
+    if: |
+      github.event_name == 'push' ||
+      (github.event.action != 'closed' &&
+       contains(fromJSON('["idvorkin", "idvorkin-ai-tools"]'), github.actor))
     runs-on: ubuntu-latest
     name: Build and Deploy to Surge
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+        with:
+          # For PRs, checkout the PR head commit
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
@@ -99,8 +111,11 @@ jobs:
             }
 
   teardown:
-    # Only run on PR close
-    if: github.event_name == 'pull_request' && github.event.action == 'closed'
+    # Only run on PR close from approved users
+    if: |
+      github.event_name == 'pull_request_target' &&
+      github.event.action == 'closed' &&
+      contains(fromJSON('["idvorkin", "idvorkin-ai-tools"]'), github.actor)
     runs-on: ubuntu-latest
     name: Teardown PR Preview
 
