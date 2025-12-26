@@ -5,6 +5,7 @@ import { BrowserRouter } from "react-router-dom";
 import "./index.css";
 import App from "./App";
 import { CrashFallback } from "./components/CrashFallback";
+import { AudioPlaybackProvider } from "./contexts/AudioPlaybackContext";
 import TestLoginApp from "./TestLoginApp";
 
 // Check if in E2E login mode (for testing login UI specifically)
@@ -24,9 +25,11 @@ const AppComponent = isE2ELoginMode ? TestLoginApp : App;
 root.render(
 	<ErrorBoundary FallbackComponent={CrashFallback}>
 		<React.StrictMode>
-			<BrowserRouter>
-				<AppComponent />
-			</BrowserRouter>
+			<AudioPlaybackProvider>
+				<BrowserRouter>
+					<AppComponent />
+				</BrowserRouter>
+			</AudioPlaybackProvider>
 		</React.StrictMode>
 	</ErrorBoundary>,
 );

@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { AudioPlaybackProvider } from "../contexts/AudioPlaybackContext";
 import { JournalPage } from "./JournalPage";
 
 // Mock URL.createObjectURL and URL.revokeObjectURL
@@ -58,9 +59,11 @@ const mockLog = {
 
 function renderWithRouter() {
 	return render(
-		<MemoryRouter>
-			<JournalPage userId="user-1" />
-		</MemoryRouter>,
+		<AudioPlaybackProvider>
+			<MemoryRouter>
+				<JournalPage userId="user-1" />
+			</MemoryRouter>
+		</AudioPlaybackProvider>,
 	);
 }
 
