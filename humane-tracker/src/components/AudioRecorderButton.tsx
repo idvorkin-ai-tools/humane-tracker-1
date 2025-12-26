@@ -9,6 +9,7 @@ interface AudioRecorderButtonProps {
 	onError?: (error: string) => void;
 	disabled?: boolean;
 	stopRecordingRef?: React.MutableRefObject<(() => Promise<void>) | null>;
+	cancelRecordingRef?: React.MutableRefObject<(() => void) | null>;
 }
 
 export function AudioRecorderButton({
@@ -17,6 +18,7 @@ export function AudioRecorderButton({
 	onError,
 	disabled = false,
 	stopRecordingRef,
+	cancelRecordingRef,
 }: AudioRecorderButtonProps) {
 	const {
 		isRecording,
@@ -26,6 +28,7 @@ export function AudioRecorderButton({
 		permissionState,
 		startRecording,
 		stopRecording,
+		cancelRecording,
 	} = useAudioRecorder();
 
 	// Notify parent of recording state changes
@@ -57,6 +60,13 @@ export function AudioRecorderButton({
 				: null;
 		}
 	}, [isRecording, stopRecording, onRecordingComplete, stopRecordingRef]);
+
+	// Expose cancel function to parent via ref (stops recording without saving)
+	useEffect(() => {
+		if (cancelRecordingRef) {
+			cancelRecordingRef.current = isRecording ? cancelRecording : null;
+		}
+	}, [isRecording, cancelRecording, cancelRecordingRef]);
 
 	// Report errors to parent via useEffect to avoid side effects during render
 	useEffect(() => {

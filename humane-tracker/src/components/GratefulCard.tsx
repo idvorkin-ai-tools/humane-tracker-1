@@ -21,6 +21,7 @@ export function GratefulCard({ userId }: GratefulCardProps) {
 	const [isRecording, setIsRecording] = useState(false);
 	const [inputMode, setInputMode] = useState<InputMode>("text");
 	const stopRecordingRef = useRef<(() => Promise<void>) | null>(null);
+	const cancelRecordingRef = useRef<(() => void) | null>(null);
 
 	// Reset input mode when card opens (mobile = voice, desktop = text)
 	useEffect(() => {
@@ -149,7 +150,7 @@ export function GratefulCard({ userId }: GratefulCardProps) {
 						onClick={() => {
 							if (isRecording) {
 								// Cancel recording without saving
-								stopRecordingRef.current = null;
+								cancelRecordingRef.current?.();
 							}
 							setIsOpen(false);
 							setNoteText("");
@@ -205,6 +206,7 @@ export function GratefulCard({ userId }: GratefulCardProps) {
 								onRecordingComplete={handleRecordingComplete}
 								onRecordingStateChange={setIsRecording}
 								stopRecordingRef={stopRecordingRef}
+								cancelRecordingRef={cancelRecordingRef}
 								onError={(err) => {
 									console.error("Recording error:", err);
 									setSaveError(true);

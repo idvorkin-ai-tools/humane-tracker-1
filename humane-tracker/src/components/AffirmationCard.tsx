@@ -35,6 +35,7 @@ export function AffirmationCard({ userId }: AffirmationCardProps) {
 	const [showSelector, setShowSelector] = useState(false);
 	const [inputMode, setInputMode] = useState<InputMode>("text");
 	const stopRecordingRef = useRef<(() => Promise<void>) | null>(null);
+	const cancelRecordingRef = useRef<(() => void) | null>(null);
 	const affirmation = DEFAULT_AFFIRMATIONS[index];
 
 	// Reset input mode when noteMode opens (mobile = voice, desktop = text)
@@ -265,7 +266,7 @@ export function AffirmationCard({ userId }: AffirmationCardProps) {
 						onClick={() => {
 							if (isRecording) {
 								// Cancel recording without saving
-								stopRecordingRef.current = null;
+								cancelRecordingRef.current?.();
 							}
 							setNoteMode(null);
 							setNoteText("");
@@ -325,6 +326,7 @@ export function AffirmationCard({ userId }: AffirmationCardProps) {
 								onRecordingComplete={handleRecordingComplete}
 								onRecordingStateChange={setIsRecording}
 								stopRecordingRef={stopRecordingRef}
+								cancelRecordingRef={cancelRecordingRef}
 								onError={(err) => {
 									console.error("Recording error:", err);
 									setSaveError(true);
