@@ -23,6 +23,7 @@ export function GratefulCard({ userId }: GratefulCardProps) {
 	const [autoStartRecording, setAutoStartRecording] = useState(false);
 	const stopRecordingRef = useRef<(() => Promise<void>) | null>(null);
 	const cancelRecordingRef = useRef<(() => void) | null>(null);
+	const addAnotherModeRef = useRef(false);
 
 	// Reset input mode when card opens (mobile = voice, desktop = text)
 	useEffect(() => {
@@ -30,6 +31,35 @@ export function GratefulCard({ userId }: GratefulCardProps) {
 			setInputMode(isMobile ? "voice" : "text");
 		}
 	}, [isOpen, isMobile]);
+
+	// Global keyboard shortcut to open card (g)
+	useEffect(() => {
+		const handleKeyDown = (event: KeyboardEvent) => {
+			// Ignore if user is typing in an input/textarea
+			if (
+				event.target instanceof HTMLInputElement ||
+				event.target instanceof HTMLTextAreaElement
+			) {
+				return;
+			}
+
+			// Ignore if card is already open
+			if (isOpen) return;
+
+			if (
+				event.key === "g" &&
+				!event.shiftKey &&
+				!event.ctrlKey &&
+				!event.metaKey
+			) {
+				event.preventDefault();
+				setIsOpen(true);
+			}
+		};
+
+		window.addEventListener("keydown", handleKeyDown);
+		return () => window.removeEventListener("keydown", handleKeyDown);
+	}, [isOpen]);
 
 	// Get today's grateful recording count (reactive)
 	const todayRecordings = useLiveQuery(
@@ -66,9 +96,14 @@ export function GratefulCard({ userId }: GratefulCardProps) {
 					date: new Date(),
 					transcriptionStatus: "pending",
 				});
-				// Auto-close after saving recording
-				setIsOpen(false);
-				setNoteText("");
+				// If in "add another" mode, keep open; otherwise close
+				if (addAnotherModeRef.current) {
+					setNoteText("");
+					addAnotherModeRef.current = false;
+				} else {
+					setIsOpen(false);
+					setNoteText("");
+				}
 			} catch (error) {
 				console.error("Failed to save audio recording:", error);
 				setSaveError(true);
@@ -109,17 +144,57 @@ export function GratefulCard({ userId }: GratefulCardProps) {
 		}
 	}, [noteText, isRecording, userId]);
 
+	const handleSaveAndAddAnother = useCallback(async () => {
+		setSaveError(false);
+
+		// If recording, stop and save it
+		if (isRecording && stopRecordingRef.current) {
+			addAnotherModeRef.current = true;
+			await stopRecordingRef.current();
+			return; // handleRecordingComplete will handle not closing
+		}
+
+		// Just clear if no text
+		if (!noteText.trim()) {
+			setNoteText("");
+			return;
+		}
+
+		// Save text note
+		try {
+			await affirmationLogRepository.create({
+				userId,
+				affirmationTitle: "Grateful",
+				logType: "grateful",
+				note: noteText.trim(),
+				date: new Date(),
+			});
+			// Keep open, just clear text for next entry
+			setNoteText("");
+		} catch (error) {
+			console.error("Failed to save grateful note:", error);
+			setSaveError(true);
+		}
+	}, [noteText, isRecording, userId]);
+
 	const handleKeyDown = useCallback(
 		(e: React.KeyboardEvent) => {
-			if (e.key === "Enter" && !e.shiftKey) {
+			if (e.key === "Enter") {
 				e.preventDefault();
-				handleSave();
+				const isModifierPressed = e.metaKey || e.ctrlKey;
+				if (isModifierPressed) {
+					// Cmd/Ctrl+Enter: save and add another
+					handleSaveAndAddAnother();
+				} else {
+					// Enter: save and close (existing behavior)
+					handleSave();
+				}
 			} else if (e.key === "Escape") {
 				setIsOpen(false);
 				setNoteText("");
 			}
 		},
-		[handleSave],
+		[handleSave, handleSaveAndAddAnother],
 	);
 
 	return (

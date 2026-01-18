@@ -37,6 +37,7 @@ export function AffirmationCard({ userId }: AffirmationCardProps) {
 	const [autoStartRecording, setAutoStartRecording] = useState(false);
 	const stopRecordingRef = useRef<(() => Promise<void>) | null>(null);
 	const cancelRecordingRef = useRef<(() => void) | null>(null);
+	const addAnotherModeRef = useRef(false);
 	const affirmation = DEFAULT_AFFIRMATIONS[index];
 
 	// Reset input mode when noteMode opens (mobile = voice, desktop = text)
@@ -45,6 +46,35 @@ export function AffirmationCard({ userId }: AffirmationCardProps) {
 			setInputMode(isMobile ? "voice" : "text");
 		}
 	}, [noteMode, isMobile]);
+
+	// Global keyboard shortcut to open card (a for affirmation)
+	useEffect(() => {
+		const handleKeyDown = (event: KeyboardEvent) => {
+			// Ignore if user is typing in an input/textarea
+			if (
+				event.target instanceof HTMLInputElement ||
+				event.target instanceof HTMLTextAreaElement
+			) {
+				return;
+			}
+
+			// Ignore if card is already open
+			if (noteMode !== null) return;
+
+			if (
+				event.key === "a" &&
+				!event.shiftKey &&
+				!event.ctrlKey &&
+				!event.metaKey
+			) {
+				event.preventDefault();
+				setNoteMode("opportunity"); // Default to opportunity mode
+			}
+		};
+
+		window.addEventListener("keydown", handleKeyDown);
+		return () => window.removeEventListener("keydown", handleKeyDown);
+	}, [noteMode]);
 
 	// Get today's affirmation log counts (reactive)
 	const todayLogs = useLiveQuery(
@@ -135,9 +165,14 @@ export function AffirmationCard({ userId }: AffirmationCardProps) {
 					date: new Date(),
 					transcriptionStatus: "pending",
 				});
-				// Auto-close dialog after saving recording
-				setNoteMode(null);
-				setNoteText("");
+				// If in "add another" mode, keep open; otherwise close
+				if (addAnotherModeRef.current) {
+					setNoteText("");
+					addAnotherModeRef.current = false;
+				} else {
+					setNoteMode(null);
+					setNoteText("");
+				}
 			} catch (error) {
 				console.error("Failed to save audio recording:", error);
 				setSaveError(true);
@@ -177,17 +212,56 @@ export function AffirmationCard({ userId }: AffirmationCardProps) {
 		}
 	}, [noteMode, noteText, affirmation.title, userId, isRecording]);
 
+	const handleSaveNoteAndAddAnother = useCallback(async () => {
+		setSaveError(false);
+
+		// If recording, stop and save it
+		if (isRecording && stopRecordingRef.current) {
+			addAnotherModeRef.current = true;
+			await stopRecordingRef.current();
+			return; // handleRecordingComplete will handle not closing
+		}
+
+		// Save text note if there is one
+		if (!noteText.trim() || !noteMode) {
+			setNoteText("");
+			return;
+		}
+
+		try {
+			await affirmationLogRepository.create({
+				userId,
+				affirmationTitle: affirmation.title,
+				logType: noteMode,
+				note: noteText.trim(),
+				date: new Date(),
+			});
+			// Keep noteMode open, just clear text for next entry
+			setNoteText("");
+		} catch (error) {
+			console.error("Failed to save affirmation log:", error);
+			setSaveError(true);
+		}
+	}, [noteMode, noteText, affirmation.title, userId, isRecording]);
+
 	const handleKeyDown = useCallback(
 		(e: React.KeyboardEvent) => {
-			if (e.key === "Enter" && !e.shiftKey) {
+			if (e.key === "Enter") {
 				e.preventDefault();
-				handleSaveNote();
+				const isModifierPressed = e.metaKey || e.ctrlKey;
+				if (isModifierPressed) {
+					// Cmd/Ctrl+Enter: save and add another
+					handleSaveNoteAndAddAnother();
+				} else {
+					// Enter: save and close (existing behavior)
+					handleSaveNote();
+				}
 			} else if (e.key === "Escape") {
 				setNoteMode(null);
 				setNoteText("");
 			}
 		},
-		[handleSaveNote],
+		[handleSaveNote, handleSaveNoteAndAddAnother],
 	);
 
 	return (
