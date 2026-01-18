@@ -4,6 +4,7 @@ import { Route, Routes } from "react-router-dom";
 import { AffirmationBanner } from "./components/AffirmationBanner";
 import { AnonymousWarning } from "./components/AnonymousWarning";
 import { HabitTracker } from "./components/HabitTracker";
+import { KeyboardShortcutsHelp } from "./components/KeyboardShortcutsHelp";
 import { LoginButton } from "./components/LoginButton";
 import { SignInDialog } from "./components/SignInDialog";
 import { StaleAuthNotification } from "./components/StaleAuthNotification";
@@ -26,6 +27,7 @@ function App() {
 	const currentUser = useObservable(() => db.cloud.currentUser, [db]);
 	const [loading, setLoading] = useState(true);
 	const [signOutError, setSignOutError] = useState<string | null>(null);
+	const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
 
 	// Sign-in dialog state
 	const [signInDialogData, setSignInDialogData] = useState<{
@@ -73,6 +75,32 @@ function App() {
 		};
 
 		checkAuth();
+	}, []);
+
+	// Global keyboard shortcut for help (?)
+	useEffect(() => {
+		const handleKeyDown = (event: KeyboardEvent) => {
+			// Ignore if user is typing in an input/textarea
+			if (
+				event.target instanceof HTMLInputElement ||
+				event.target instanceof HTMLTextAreaElement
+			) {
+				return;
+			}
+
+			if (
+				event.key === "?" &&
+				!event.shiftKey &&
+				!event.ctrlKey &&
+				!event.metaKey
+			) {
+				event.preventDefault();
+				setShowKeyboardShortcuts(true);
+			}
+		};
+
+		window.addEventListener("keydown", handleKeyDown);
+		return () => window.removeEventListener("keydown", handleKeyDown);
 	}, []);
 
 	const handleSignOut = async () => {
@@ -145,6 +173,10 @@ function App() {
 								)}
 							/>
 							<VersionNotification />
+							<KeyboardShortcutsHelp
+								isOpen={showKeyboardShortcuts}
+								onClose={() => setShowKeyboardShortcuts(false)}
+							/>
 						</div>
 					}
 				/>
@@ -187,6 +219,10 @@ function App() {
 									onChoice={handleSignInChoice}
 								/>
 							)}
+							<KeyboardShortcutsHelp
+								isOpen={showKeyboardShortcuts}
+								onClose={() => setShowKeyboardShortcuts(false)}
+							/>
 						</div>
 					}
 				/>
@@ -237,6 +273,10 @@ function App() {
 						/>
 						<VersionNotification />
 						<StaleAuthNotification />
+						<KeyboardShortcutsHelp
+							isOpen={showKeyboardShortcuts}
+							onClose={() => setShowKeyboardShortcuts(false)}
+						/>
 					</div>
 				}
 			/>

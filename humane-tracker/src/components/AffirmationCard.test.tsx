@@ -277,4 +277,128 @@ describe("AffirmationCard", () => {
 		// autoStart should now be false
 		expect(capturedAutoStart).toBe(false);
 	});
+
+	it("saves and closes when Enter is pressed without modifiers", async () => {
+		const { affirmationLogRepository } = await import(
+			"../repositories/affirmationLogRepository"
+		);
+
+		render(<AffirmationCard userId="test-user" />);
+
+		fireEvent.click(screen.getByText(/Opp/));
+		const textarea = screen.getByPlaceholderText(
+			"How will you apply this today?",
+		);
+		fireEvent.change(textarea, { target: { value: "Practice patience" } });
+		fireEvent.keyDown(textarea, { key: "Enter" });
+
+		await screen.findByText(/Opp/);
+
+		expect(affirmationLogRepository.create).toHaveBeenCalledWith(
+			expect.objectContaining({
+				note: "Practice patience",
+				logType: "opportunity",
+			}),
+		);
+
+		// Card should close
+		expect(
+			screen.queryByPlaceholderText("How will you apply this today?"),
+		).not.toBeInTheDocument();
+	});
+
+	it("saves and keeps open when Cmd+Enter is pressed", async () => {
+		const { affirmationLogRepository } = await import(
+			"../repositories/affirmationLogRepository"
+		);
+
+		render(<AffirmationCard userId="test-user" />);
+
+		fireEvent.click(screen.getByText(/Opp/));
+		const textarea = screen.getByPlaceholderText(
+			"How will you apply this today?",
+		);
+		fireEvent.change(textarea, { target: { value: "Stay calm" } });
+		fireEvent.keyDown(textarea, { key: "Enter", metaKey: true });
+
+		await vi.waitFor(() => {
+			expect(affirmationLogRepository.create).toHaveBeenCalledWith(
+				expect.objectContaining({
+					note: "Stay calm",
+					logType: "opportunity",
+				}),
+			);
+		});
+
+		// Card should stay open with cleared text
+		expect(
+			screen.getByPlaceholderText("How will you apply this today?"),
+		).toHaveValue("");
+	});
+
+	it("saves and keeps open when Ctrl+Enter is pressed", async () => {
+		const { affirmationLogRepository } = await import(
+			"../repositories/affirmationLogRepository"
+		);
+
+		render(<AffirmationCard userId="test-user" />);
+
+		fireEvent.click(screen.getByText(/Did/));
+		const textarea = screen.getByPlaceholderText("How did you apply this?");
+		fireEvent.change(textarea, { target: { value: "Helped a colleague" } });
+		fireEvent.keyDown(textarea, { key: "Enter", ctrlKey: true });
+
+		await vi.waitFor(() => {
+			expect(affirmationLogRepository.create).toHaveBeenCalledWith(
+				expect.objectContaining({
+					note: "Helped a colleague",
+					logType: "didit",
+				}),
+			);
+		});
+
+		// Card should stay open with cleared text
+		expect(screen.getByPlaceholderText("How did you apply this?")).toHaveValue(
+			"",
+		);
+	});
+
+	it("allows adding multiple entries with Cmd/Ctrl+Enter", async () => {
+		const { affirmationLogRepository } = await import(
+			"../repositories/affirmationLogRepository"
+		);
+
+		render(<AffirmationCard userId="test-user" />);
+
+		fireEvent.click(screen.getByText(/Opp/));
+		const textarea = screen.getByPlaceholderText(
+			"How will you apply this today?",
+		);
+
+		// First entry
+		fireEvent.change(textarea, { target: { value: "Entry 1" } });
+		fireEvent.keyDown(textarea, { key: "Enter", metaKey: true });
+
+		await vi.waitFor(() => {
+			expect(affirmationLogRepository.create).toHaveBeenCalledWith(
+				expect.objectContaining({ note: "Entry 1" }),
+			);
+		});
+
+		// Second entry
+		fireEvent.change(textarea, { target: { value: "Entry 2" } });
+		fireEvent.keyDown(textarea, { key: "Enter", metaKey: true });
+
+		await vi.waitFor(() => {
+			expect(affirmationLogRepository.create).toHaveBeenCalledWith(
+				expect.objectContaining({ note: "Entry 2" }),
+			);
+		});
+
+		// Card should still be open
+		expect(
+			screen.getByPlaceholderText("How will you apply this today?"),
+		).toBeInTheDocument();
+		expect(affirmationLogRepository.create).toHaveBeenCalledTimes(2);
+	});
 });

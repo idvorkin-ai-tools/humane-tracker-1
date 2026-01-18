@@ -1,4 +1,10 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+	act,
+	fireEvent,
+	render,
+	screen,
+	waitFor,
+} from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { GratefulCard } from "./GratefulCard";
 
@@ -263,5 +269,126 @@ describe("GratefulCard", () => {
 
 		// autoStart should now be false
 		expect(capturedAutoStart).toBe(false);
+	});
+
+	it("saves and closes when Enter is pressed without modifiers", async () => {
+		const { affirmationLogRepository } = await import(
+			"../repositories/affirmationLogRepository"
+		);
+
+		render(<GratefulCard userId="test-user" />);
+
+		fireEvent.click(screen.getByText("🙏 Thanks"));
+		const textarea = screen.getByPlaceholderText("I'm grateful for...");
+		fireEvent.change(textarea, { target: { value: "Sunshine" } });
+		fireEvent.keyDown(textarea, { key: "Enter" });
+
+		await waitFor(() => {
+			expect(affirmationLogRepository.create).toHaveBeenCalledWith(
+				expect.objectContaining({
+					note: "Sunshine",
+				}),
+			);
+		});
+
+		// Card should close
+		await waitFor(() => {
+			expect(
+				screen.queryByPlaceholderText("I'm grateful for..."),
+			).not.toBeInTheDocument();
+		});
+	});
+
+	it("saves and keeps open when Cmd+Enter is pressed", async () => {
+		const { affirmationLogRepository } = await import(
+			"../repositories/affirmationLogRepository"
+		);
+
+		render(<GratefulCard userId="test-user" />);
+
+		fireEvent.click(screen.getByText("🙏 Thanks"));
+		const textarea = screen.getByPlaceholderText("I'm grateful for...");
+		fireEvent.change(textarea, { target: { value: "Coffee" } });
+		fireEvent.keyDown(textarea, { key: "Enter", metaKey: true });
+
+		await waitFor(() => {
+			expect(affirmationLogRepository.create).toHaveBeenCalledWith(
+				expect.objectContaining({
+					note: "Coffee",
+				}),
+			);
+		});
+
+		// Card should stay open with cleared text
+		await waitFor(() => {
+			expect(screen.getByPlaceholderText("I'm grateful for...")).toHaveValue(
+				"",
+			);
+		});
+	});
+
+	it("saves and keeps open when Ctrl+Enter is pressed", async () => {
+		const { affirmationLogRepository } = await import(
+			"../repositories/affirmationLogRepository"
+		);
+
+		render(<GratefulCard userId="test-user" />);
+
+		fireEvent.click(screen.getByText("🙏 Thanks"));
+		const textarea = screen.getByPlaceholderText("I'm grateful for...");
+		fireEvent.change(textarea, { target: { value: "Friends" } });
+		fireEvent.keyDown(textarea, { key: "Enter", ctrlKey: true });
+
+		await waitFor(() => {
+			expect(affirmationLogRepository.create).toHaveBeenCalledWith(
+				expect.objectContaining({
+					note: "Friends",
+				}),
+			);
+		});
+
+		// Card should stay open with cleared text
+		await waitFor(() => {
+			expect(screen.getByPlaceholderText("I'm grateful for...")).toHaveValue(
+				"",
+			);
+		});
+	});
+
+	it("allows adding multiple entries with Cmd/Ctrl+Enter", async () => {
+		const { affirmationLogRepository } = await import(
+			"../repositories/affirmationLogRepository"
+		);
+
+		render(<GratefulCard userId="test-user" />);
+
+		fireEvent.click(screen.getByText("🙏 Thanks"));
+		const textarea = screen.getByPlaceholderText("I'm grateful for...");
+
+		// First entry
+		fireEvent.change(textarea, { target: { value: "Entry 1" } });
+		fireEvent.keyDown(textarea, { key: "Enter", metaKey: true });
+
+		await waitFor(() => {
+			expect(affirmationLogRepository.create).toHaveBeenCalledWith(
+				expect.objectContaining({ note: "Entry 1" }),
+			);
+		});
+
+		// Second entry
+		fireEvent.change(textarea, { target: { value: "Entry 2" } });
+		fireEvent.keyDown(textarea, { key: "Enter", metaKey: true });
+
+		await waitFor(() => {
+			expect(affirmationLogRepository.create).toHaveBeenCalledWith(
+				expect.objectContaining({ note: "Entry 2" }),
+			);
+		});
+
+		// Card should still be open
+		expect(
+			screen.getByPlaceholderText("I'm grateful for..."),
+		).toBeInTheDocument();
+		expect(affirmationLogRepository.create).toHaveBeenCalledTimes(2);
 	});
 });
