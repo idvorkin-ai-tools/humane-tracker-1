@@ -45,12 +45,18 @@ export const HabitTracker: React.FC<HabitTrackerProps> = ({
 	// Long-press detection refs
 	const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const longPressTriggered = useRef(false);
+	const habitNameLongPressTimer = useRef<ReturnType<typeof setTimeout> | null>(
+		null,
+	);
 
-	// Cleanup long-press timer on unmount
+	// Cleanup long-press timers on unmount
 	useEffect(() => {
 		return () => {
 			if (longPressTimer.current) {
 				clearTimeout(longPressTimer.current);
+			}
+			if (habitNameLongPressTimer.current) {
+				clearTimeout(habitNameLongPressTimer.current);
 			}
 		};
 	}, []);
@@ -101,6 +107,24 @@ export const HabitTracker: React.FC<HabitTrackerProps> = ({
 		}
 	}, []);
 
+	// Long press handlers for habit name row selection
+	const handleHabitNamePressStart = useCallback(
+		(habitId: string, event: React.MouseEvent | React.TouchEvent) => {
+			event.preventDefault();
+			habitNameLongPressTimer.current = setTimeout(() => {
+				vm.selectHabit(habitId);
+			}, 500);
+		},
+		[vm],
+	);
+
+	const handleHabitNamePressEnd = useCallback(() => {
+		if (habitNameLongPressTimer.current) {
+			clearTimeout(habitNameLongPressTimer.current);
+			habitNameLongPressTimer.current = null;
+		}
+	}, []);
+
 	const handleCellClick = useCallback(
 		(habit: HabitWithStatus, date: Date) => {
 			// If long press was triggered, don't also do click action
@@ -140,6 +164,19 @@ export const HabitTracker: React.FC<HabitTrackerProps> = ({
 			// Don't close picker - let user toggle multiple items
 		},
 		[tagChildPickerState, vm],
+	);
+
+	// Helper: check if a habit is row-selected (directly or as child of selected tag)
+	const isHabitRowSelected = useCallback(
+		(habitId: string): boolean => {
+			const sel = vm.selection;
+			if (sel?.type !== "row") return false;
+			if (sel.habitId === habitId) return true;
+			// Check if this habit is a child of the selected tag
+			const selectedHabit = vm.habits.find((h) => h.id === sel.habitId);
+			return selectedHabit?.childIds?.includes(habitId) ?? false;
+		},
+		[vm.selection, vm.habits],
 	);
 
 	// Loading screen
@@ -230,14 +267,19 @@ export const HabitTracker: React.FC<HabitTrackerProps> = ({
 						</>
 					) : (
 						<span
-							className={`current-day ${vm.selectedDate && !isToday(vm.selectedDate) ? "selected-day" : ""}`}
+							className={`current-day ${vm.selection ? "selected-day" : ""}`}
 							onClick={() => vm.selectDate(null)}
-							style={{ cursor: vm.selectedDate ? "pointer" : "default" }}
-							title={vm.selectedDate ? "Click to return to today" : undefined}
+							style={{ cursor: vm.selection ? "pointer" : "default" }}
+							title={vm.selection ? "Click to return to today" : undefined}
 						>
-							{vm.selectedDate
-								? format(vm.selectedDate, "EEEE, MMM d")
-								: format(new Date(), "EEEE, MMM d")}
+							{(() => {
+								const sel = vm.selection;
+								if (sel?.type === "column")
+									return format(sel.date, "EEEE, MMM d");
+								if (sel?.type === "row")
+									return `Editing: ${vm.habits.find((h) => h.id === sel.habitId)?.name ?? "Unknown"}`;
+								return format(new Date(), "EEEE, MMM d");
+							})()}
 						</span>
 					)}
 				</div>
@@ -274,7 +316,8 @@ export const HabitTracker: React.FC<HabitTrackerProps> = ({
 						{vm.weekDates.map((date) => {
 							const isTodayDate = isToday(date);
 							const isSelected = Boolean(
-								vm.selectedDate && isSameDay(date, vm.selectedDate),
+								vm.selection?.type === "column" &&
+									isSameDay(date, vm.selection.date),
 							);
 							return (
 								<th
@@ -386,10 +429,22 @@ export const HabitTracker: React.FC<HabitTrackerProps> = ({
 												const isTag = treeNode.isTag;
 												const isExpanded = treeNode.isExpanded;
 												const hasChildren = treeNode.hasChildren;
+												const rowSelected = isHabitRowSelected(habit.id);
 
 												return (
 													<tr key={habit.id} className="section-row">
-														<td className="col-habit">
+														<td
+															className={`col-habit ${rowSelected ? "row-selected" : ""}`}
+															onMouseDown={(e) =>
+																handleHabitNamePressStart(habit.id, e)
+															}
+															onMouseUp={handleHabitNamePressEnd}
+															onMouseLeave={handleHabitNamePressEnd}
+															onTouchStart={(e) =>
+																handleHabitNamePressStart(habit.id, e)
+															}
+															onTouchEnd={handleHabitNamePressEnd}
+														>
 															<div
 																className="habit-name"
 																style={{ paddingLeft: `${depth * 16}px` }}
@@ -426,17 +481,18 @@ export const HabitTracker: React.FC<HabitTrackerProps> = ({
 																date,
 															);
 															const isTodayDate = isToday(date);
-															const isSelected = Boolean(
-																vm.selectedDate &&
-																	isSameDay(date, vm.selectedDate),
+															const isColumnSelected = Boolean(
+																vm.selection?.type === "column" &&
+																	isSameDay(date, vm.selection.date),
 															);
 															const cellClass = [
 																cellDisplay.className,
 																getDateColumnClass(
 																	"cell",
 																	isTodayDate,
-																	isSelected,
+																	isColumnSelected,
 																),
+																rowSelected ? "cell-selected" : "",
 																isTag ? "tag-cell" : "",
 															]
 																.filter(Boolean)

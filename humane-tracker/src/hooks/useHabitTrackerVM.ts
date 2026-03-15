@@ -21,16 +21,38 @@ import {
 // Pure helper functions (easily testable)
 // ============================================================================
 
+// Selection state: column (date header click) or row (habit name long-press)
+export type Selection =
+	| { type: "column"; date: Date }
+	| { type: "row"; habitId: string }
+	| null;
+
 /**
  * Determines if a confirmation dialog should be shown before modifying an entry.
- * Returns true if the date is NOT today AND NOT the currently selected date.
+ * Returns true if the date is NOT today AND NOT bypassed by the current selection.
+ * Column selection bypasses confirmation for that date.
+ * Row selection bypasses confirmation for that habit (and its children if it's a tag).
  */
-export function shouldConfirmDateModification(
+export function shouldConfirmModification(
 	date: Date,
-	selectedDate: Date | null,
+	habitId: string,
+	selection: Selection,
+	childIdsOfSelectedHabit?: string[],
 ): boolean {
-	const isSelectedDate = selectedDate !== null && isSameDay(date, selectedDate);
-	return !isToday(date) && !isSelectedDate;
+	if (isToday(date)) return false;
+	if (!selection) return true;
+
+	if (selection.type === "column") {
+		return !isSameDay(date, selection.date);
+	}
+
+	if (selection.type === "row") {
+		if (selection.habitId === habitId) return false;
+		if (childIdsOfSelectedHabit?.includes(habitId)) return false;
+		return true;
+	}
+
+	return true;
 }
 
 export type StatStatus = "good" | "warn" | "bad" | "neutral";
@@ -221,7 +243,7 @@ export interface HabitTrackerVM {
 	isLoading: boolean;
 	zoomedSection: string | null;
 	allExpanded: boolean;
-	selectedDate: Date | null;
+	selection: Selection;
 	entryError: string | null;
 
 	// Tag tree support
@@ -242,6 +264,7 @@ export interface HabitTrackerVM {
 	zoomIn: (category: string) => void;
 	zoomOut: () => void;
 	selectDate: (date: Date | null) => void;
+	selectHabit: (habitId: string) => void;
 	clearEntryError: () => void;
 
 	// For menu actions
@@ -255,7 +278,7 @@ export function useHabitTrackerVM({
 	const [isLoading, setIsLoading] = useState(true);
 	const [zoomedSection, setZoomedSection] = useState<string | null>(null);
 	const [allExpanded, setAllExpanded] = useState(false);
-	const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+	const [selection, setSelection] = useState<Selection>(null);
 	const [entryError, setEntryError] = useState<string | null>(null);
 	// Start with empty set - categories derived dynamically from habits
 	const collapsedSectionsRef = useRef<Set<string>>(new Set());
@@ -411,11 +434,13 @@ export function useHabitTrackerVM({
 
 	const zoomIn = useCallback((category: string) => {
 		setZoomedSection(category);
+		setSelection(null);
 		collapsedSectionsRef.current.delete(category);
 		setCollapsedVersion((v) => v + 1);
 	}, []);
 
 	const zoomOut = useCallback(() => {
+		setSelection(null);
 		// Collapse the section we're zooming out of
 		setZoomedSection((current) => {
 			if (current) {
@@ -427,7 +452,14 @@ export function useHabitTrackerVM({
 	}, []);
 
 	const selectDate = useCallback((date: Date | null) => {
-		setSelectedDate(date);
+		setSelection(date ? { type: "column", date } : null);
+	}, []);
+
+	const selectHabit = useCallback((habitId: string) => {
+		setSelection((current) => {
+			if (current?.type === "row" && current.habitId === habitId) return null;
+			return { type: "row", habitId };
+		});
 	}, []);
 
 	const toggleTagExpanded = useCallback((tagId: string) => {
@@ -441,8 +473,15 @@ export function useHabitTrackerVM({
 
 	const toggleEntry = useCallback(
 		async (habitId: string, date: Date) => {
-			// Confirm modification of any date except today or the selected date
-			if (shouldConfirmDateModification(date, selectedDate)) {
+			// Resolve childIds if the selected habit is a tag
+			const selectedChildIds =
+				selection?.type === "row"
+					? habits.find((h) => h.id === selection.habitId)?.childIds
+					: undefined;
+
+			if (
+				shouldConfirmModification(date, habitId, selection, selectedChildIds)
+			) {
 				const dateStr = format(date, "MMM d");
 				if (
 					!window.confirm(
@@ -497,7 +536,7 @@ export function useHabitTrackerVM({
 				setEntryError(`Failed to save entry: ${message}`);
 			}
 		},
-		[habits, userId, selectedDate],
+		[habits, userId, selection],
 	);
 
 	const clearEntryError = useCallback(() => {
@@ -513,7 +552,7 @@ export function useHabitTrackerVM({
 		isLoading,
 		zoomedSection,
 		allExpanded,
-		selectedDate,
+		selection,
 		entryError,
 
 		// Tag tree support
@@ -534,6 +573,7 @@ export function useHabitTrackerVM({
 		zoomIn,
 		zoomOut,
 		selectDate,
+		selectHabit,
 		clearEntryError,
 
 		// Menu helpers
