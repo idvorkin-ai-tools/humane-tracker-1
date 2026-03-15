@@ -279,6 +279,19 @@ th {
 	cursor: pointer;
 }
 
+/* Selected Row Highlight - amber/gold matching column selection */
+.section-row td.row-selected {
+	background: linear-gradient(
+		90deg,
+		rgba(217, 119, 6, 0.2) 0%,
+		rgba(217, 119, 6, 0.1) 100%
+	);
+	border-top: 2px solid var(--color-amber);
+	border-bottom: 2px solid var(--color-amber);
+	color: var(--color-cream);
+	font-weight: 700;
+}
+
 .col-day:not(.col-today):hover {
 	background: rgba(217, 119, 6, 0.1);
 }
