@@ -8,7 +8,7 @@ import {
 	getStatusIcon,
 	getTrailingWeekDates,
 	groupHabitsByCategory,
-	shouldConfirmDateModification,
+	shouldConfirmModification,
 } from "./useHabitTrackerVM";
 
 // Helper to create a mock habit
@@ -621,51 +621,83 @@ describe("calculateSummaryStats", () => {
 	});
 });
 
-describe("shouldConfirmDateModification", () => {
+describe("shouldConfirmModification", () => {
 	it("returns false for today (no confirmation needed)", () => {
 		const today = new Date();
-
-		expect(shouldConfirmDateModification(today, null)).toBe(false);
+		expect(shouldConfirmModification(today, "habit-1", null)).toBe(false);
 	});
 
-	it("returns true for yesterday (confirmation needed)", () => {
+	it("returns true for yesterday with no selection", () => {
 		const yesterday = new Date();
 		yesterday.setDate(yesterday.getDate() - 1);
-
-		expect(shouldConfirmDateModification(yesterday, null)).toBe(true);
+		expect(shouldConfirmModification(yesterday, "habit-1", null)).toBe(true);
 	});
 
-	it("returns true for older dates (confirmation needed)", () => {
-		const weekAgo = new Date();
-		weekAgo.setDate(weekAgo.getDate() - 7);
-
-		expect(shouldConfirmDateModification(weekAgo, null)).toBe(true);
-	});
-
-	it("returns false when date matches selected date (no confirmation needed)", () => {
+	it("returns false when column selection matches the date", () => {
 		const yesterday = new Date();
 		yesterday.setDate(yesterday.getDate() - 1);
-		const selectedDate = new Date(yesterday);
-
-		expect(shouldConfirmDateModification(yesterday, selectedDate)).toBe(false);
+		const selection = { type: "column" as const, date: new Date(yesterday) };
+		expect(shouldConfirmModification(yesterday, "habit-1", selection)).toBe(
+			false,
+		);
 	});
 
-	it("returns true for non-today date when different date is selected", () => {
+	it("returns true when column selection does not match the date", () => {
 		const yesterday = new Date();
 		yesterday.setDate(yesterday.getDate() - 1);
 		const twoDaysAgo = new Date();
 		twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
-
-		// Modifying yesterday while two days ago is selected
-		expect(shouldConfirmDateModification(yesterday, twoDaysAgo)).toBe(true);
+		const selection = { type: "column" as const, date: twoDaysAgo };
+		expect(shouldConfirmModification(yesterday, "habit-1", selection)).toBe(
+			true,
+		);
 	});
 
-	it("returns false for today even when another date is selected", () => {
-		const today = new Date();
+	it("returns false when row selection matches the habit", () => {
 		const yesterday = new Date();
 		yesterday.setDate(yesterday.getDate() - 1);
+		const selection = { type: "row" as const, habitId: "habit-1" };
+		expect(shouldConfirmModification(yesterday, "habit-1", selection)).toBe(
+			false,
+		);
+	});
 
-		// Today should never need confirmation, regardless of selection
-		expect(shouldConfirmDateModification(today, yesterday)).toBe(false);
+	it("returns true when row selection does not match the habit", () => {
+		const yesterday = new Date();
+		yesterday.setDate(yesterday.getDate() - 1);
+		const selection = { type: "row" as const, habitId: "habit-2" };
+		expect(shouldConfirmModification(yesterday, "habit-1", selection)).toBe(
+			true,
+		);
+	});
+
+	it("returns false for child of selected tag", () => {
+		const yesterday = new Date();
+		yesterday.setDate(yesterday.getDate() - 1);
+		const selection = { type: "row" as const, habitId: "parent-tag" };
+		expect(
+			shouldConfirmModification(yesterday, "child-1", selection, [
+				"child-1",
+				"child-2",
+			]),
+		).toBe(false);
+	});
+
+	it("returns true for non-child of selected tag", () => {
+		const yesterday = new Date();
+		yesterday.setDate(yesterday.getDate() - 1);
+		const selection = { type: "row" as const, habitId: "parent-tag" };
+		expect(
+			shouldConfirmModification(yesterday, "unrelated", selection, [
+				"child-1",
+				"child-2",
+			]),
+		).toBe(true);
+	});
+
+	it("returns false for today even with non-matching selection", () => {
+		const today = new Date();
+		const selection = { type: "row" as const, habitId: "other-habit" };
+		expect(shouldConfirmModification(today, "habit-1", selection)).toBe(false);
 	});
 });

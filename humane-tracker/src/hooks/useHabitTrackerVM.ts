@@ -21,16 +21,50 @@ import {
 // Pure helper functions (easily testable)
 // ============================================================================
 
+// Selection state: column (date header click) or row (habit name long-press)
+export type Selection =
+	| { type: "column"; date: Date }
+	| { type: "row"; habitId: string }
+	| null;
+
 /**
  * Determines if a confirmation dialog should be shown before modifying an entry.
- * Returns true if the date is NOT today AND NOT the currently selected date.
+ * Returns true if the date is NOT today AND NOT bypassed by the current selection.
+ * Column selection bypasses confirmation for that date.
+ * Row selection bypasses confirmation for that habit (and its children if it's a tag).
  */
+export function shouldConfirmModification(
+	date: Date,
+	habitId: string,
+	selection: Selection,
+	childIdsOfSelectedHabit?: string[],
+): boolean {
+	if (isToday(date)) return false;
+	if (!selection) return true;
+
+	if (selection.type === "column") {
+		return !isSameDay(date, selection.date);
+	}
+
+	if (selection.type === "row") {
+		if (selection.habitId === habitId) return false;
+		if (childIdsOfSelectedHabit?.includes(habitId)) return false;
+		return true;
+	}
+
+	return true;
+}
+
+/** @deprecated Compatibility wrapper — will be removed in Task 2 */
 export function shouldConfirmDateModification(
 	date: Date,
 	selectedDate: Date | null,
 ): boolean {
-	const isSelectedDate = selectedDate !== null && isSameDay(date, selectedDate);
-	return !isToday(date) && !isSelectedDate;
+	return shouldConfirmModification(
+		date,
+		"",
+		selectedDate ? { type: "column", date: selectedDate } : null,
+	);
 }
 
 export type StatStatus = "good" | "warn" | "bad" | "neutral";
